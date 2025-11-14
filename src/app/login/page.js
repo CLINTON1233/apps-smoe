@@ -1,192 +1,156 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Download, User, Filter } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
+import Image from "next/image";
+import { Poppins } from "next/font/google";
+import { useRouter } from "next/navigation";
 
-export default function AppStoreDashboard() {
-  const [activeCategory, setActiveCategory] = useState("Semua");
-  
-  const categories = [
-    "Semua",
-    "Business",
-    "Education",
-    "Entertainment",
-    "Games",
-    "Productivity",
-    "Utilities"
-  ];
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+});
 
-  const apps = [
-    {
-      id: 1,
-      name: "Tokped",
-      version: "v1.0.0",
-      description: "Tokped",
-      downloads: 0,
-      size: "10 Bytes",
-      category: "Education",
-      icon: "https://via.placeholder.com/80?text=T"
-    },
-    {
-      id: 2,
-      name: "Shopee",
-      version: "v2.1.0",
-      description: "Shopping Application",
-      downloads: 150,
-      size: "25 MB",
-      category: "Business",
-      icon: "https://via.placeholder.com/80?text=S"
-    },
-    {
-      id: 3,
-      name: "Gojek",
-      version: "v3.5.2",
-      description: "Transportation App",
-      downloads: 500,
-      size: "45 MB",
-      category: "Productivity",
-      icon: "https://via.placeholder.com/80?text=G"
-    },
-    {
-      id: 4,
-      name: "Spotify",
-      version: "v1.8.0",
-      description: "Music Streaming",
-      downloads: 1200,
-      size: "35 MB",
-      category: "Entertainment",
-      icon: "https://via.placeholder.com/80?text=SP"
-    }
-  ];
-
-  const [searchQuery, setSearchQuery] = useState("");
-
-  const filteredApps = apps.filter(app => {
-    const matchesSearch = app.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = activeCategory === "Semua" || app.category === activeCategory;
-    return matchesSearch && matchesCategory;
+export default function LoginPage() {
+  const router = useRouter();
+  const [showPassword, setShowPassword] = useState(false);
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
   });
 
-  return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header - Diperbaiki seperti di halaman login */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between">
-            {/* Logo seperti di halaman login */}
-            <div className="flex items-center gap-2">
-              <Link
-                href="/"
-                className="flex items-center gap-2 text-sm hover:text-gray-200 transition"
-              >
-                <Image
-                  src="/seatrium.png"
-                  alt="Seatrium Logo"
-                  width={150}
-                  height={150}
-                  className="object-contain"
-                />
-              </Link>
-            </div>
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Simulasi login berhasil
+    console.log("Login attempt:", formData);
+    
+    // Redirect ke dashboard
+    router.push("/dashboard");
+  };
 
-            {/* Admin Login Button */}
-            <button className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
-              <User size={20} />
-              <span className="font-medium">Admin Login</span>
-            </button>
-          </div>
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  return (
+    <div className={`relative min-h-screen flex flex-col ${poppins.className}`}>
+      {/* 🌊 BACKGROUND */}
+      <div className="absolute inset-0 -z-10">
+        <Image
+          src="/banner.png"
+          alt="Background"
+          fill
+          className="object-cover"
+          priority
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-white-700/50 via-white-500/30 to-gray-700/40" />
+      </div>
+
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-4 border-b border-white/50 text-white">
+        <div className="flex items-center gap-2">
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-sm hover:text-gray-200 transition"
+          >
+            <Image
+              src="/seatrium.png"
+              alt="Seatrium Logo"
+              width={150}
+              height={150}
+              className="object-contain"
+            />
+          </Link>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8 flex-1">
-        {/* Search Bar */}
-        <div className="mb-6">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+      <div className="max-w-lg w-full mx-auto px-4 py-10">
+        {/* Title di atas form */}
+        <div className="flex flex-col items-center mb-6 text-center text-white">
+          <h1 className="text-3xl font-bold mb-0">Welcome Back!</h1>
+          <p className="text-base opacity-90">Log in to access your account</p>
+        </div>
+
+        {/* Login Form */}
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-3 bg-white/90 backdrop-blur-md p-8 rounded-2xl shadow-lg mt-6"
+        >
+          {/* Title di dalam form */}
+          <div className="flex flex-col items-center mb-6 text-center text-black">
+            <h3 className="text-3xl font-bold mb-1">Log in</h3>
+          </div>
+
+          {/* Email */}
+          <div>
+            <label
+              htmlFor="email"
+              className="block text-base text-gray-700 mb-2"
+            >
+              Email address
+            </label>
             <input
-              type="text"
-              placeholder="Cari aplikasi..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              className="w-full px-5 py-3 border border-gray-300 rounded-md text-base text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
-        </div>
 
-        {/* Category Filter */}
-        <div className="mb-8 flex items-center gap-3">
-          <div className="flex items-center gap-2 text-gray-700">
-            <Filter size={18} />
-            <span className="font-medium">Kategori:</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {categories.map((category) => (
+          {/* Password */}
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <label htmlFor="password" className="text-base text-gray-700">
+                Password
+              </label>
               <button
-                key={category}
-                onClick={() => setActiveCategory(category)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeCategory === category
-                    ? "bg-blue-600 text-white"
-                    : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
-                }`}
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="text-sm text-blue-600 hover:underline"
               >
-                {category}
+                {showPassword ? "Hide" : "Show"}
               </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Apps Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-          {filteredApps.map((app) => (
-            <div
-              key={app.id}
-              className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow border border-gray-100"
-            >
-              <div className="flex flex-col items-center text-center">
-                <img
-                  src={app.icon}
-                  alt={app.name}
-                  className="w-20 h-20 rounded-2xl mb-4 object-cover"
-                />
-                
-                <h3 className="text-lg font-bold text-gray-900 mb-1">{app.name}</h3>
-                <p className="text-sm text-gray-500 mb-4">{app.version}</p>
-                
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2">{app.description}</p>
-                
-                <div className="flex items-center justify-between w-full mb-4 text-xs text-gray-500">
-                  <div className="flex items-center gap-1">
-                    <Download size={14} />
-                    <span>{app.downloads}</span>
-                  </div>
-                  <span>{app.size}</span>
-                </div>
-
-                <span className="inline-block px-3 py-1 bg-gray-100 text-gray-700 text-xs rounded-full mb-4">
-                  {app.category}
-                </span>
-
-                <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors">
-                  <Download size={18} />
-                  Download
-                </button>
-              </div>
             </div>
-          ))}
-        </div>
+            <input
+              type={showPassword ? "text" : "password"}
+              id="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+              className="w-full px-5 py-3 border border-gray-300 rounded-md text-base text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
 
-        {/* Result Info */}
-        <div className="text-center text-gray-500 py-4">
-          Menampilkan {filteredApps.length} dari {apps.length} aplikasi
-        </div>
+          {/* Submit */}
+          <button
+            type="submit"
+            className="w-full bg-blue-800 text-white rounded-full py-3 text-base font-medium hover:bg-blue-900 transition"
+          >
+            Log in
+          </button>
+
+          {/* Sign Up Link */}
+          <div className="text-center mt-4">
+            <p className="text-sm text-gray-700">
+              Don't have an account?{" "}
+              <Link href="/register" className="text-blue-600 hover:underline font-medium">
+                Sign Up
+              </Link>
+            </p>
+          </div>
+        </form>
       </div>
 
-      {/* Footer - SAMA PERSIS seperti di halaman login */}
-      <footer className="mt-auto py-4 text-center text-white text-xs md:text-sm space-y-1 border-t border-white/30 bg-blue-900">
+      <footer className="mt-auto py-4 text-center text-white text-xs md:text-sm space-y-1 border-t border-white/30">
         <p>
           IT Applications Dashboard
         </p>
