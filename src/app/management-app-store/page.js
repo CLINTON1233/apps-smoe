@@ -2,18 +2,10 @@
 
 import { useState } from "react";
 import { Search, Download, Plus, Edit, Trash2, Eye, RefreshCw, ChevronDown } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
-import { Poppins } from "next/font/google";
+import LayoutDashboard from "../components/Layout/LayoutDashboard";
 
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-});
-
-export default function ApplicationsManagement() {
+export default function AdminApplicationsManagement() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedApp, setSelectedApp] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -106,8 +98,6 @@ export default function ApplicationsManagement() {
     }
   ];
 
-  const categories = ["All", "Business", "Education", "Entertainment", "Productivity", "Utilities"];
-
   const entriesOptions = [10, 25, 50, 100, "All"];
 
   // Filter data
@@ -138,7 +128,7 @@ export default function ApplicationsManagement() {
     <div className="relative">
       <button
         onClick={() => setShowEntriesDropdown(!showEntriesDropdown)}
-        className={`flex items-center gap-1 px-3 py-1 text-xs border border-gray-300 rounded-lg bg-white text-gray-700 hover:bg-gray-50 transition ${poppins.className}`}
+        className="flex items-center gap-1 px-3 py-1 text-xs border border-gray-300 rounded-lg bg-white text-gray-700 hover:bg-gray-50 transition"
       >
         Show {itemsPerPage === filteredApps.length ? "All" : itemsPerPage}
         <ChevronDown className="w-3 h-3" />
@@ -224,74 +214,7 @@ export default function ApplicationsManagement() {
   );
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 ${poppins.className}`}>
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 bg-blue-600 text-white shadow-md">
-        <Link href="/" className="flex items-center gap-2 sm:gap-3">
-          <Image
-            src="/seatrium.png"
-            alt="Seatrium Logo"
-            width={120}
-            height={120}
-            className="object-contain w-28 sm:w-32"
-          />
-        </Link>
-
-        <nav className="hidden sm:flex items-center gap-4 lg:gap-6 text-sm font-medium">
-          <Link href="/dashboard" className="hover:text-gray-200 transition whitespace-nowrap">
-            Dashboard
-          </Link>
-          <Link href="/management-app-store" className="hover:text-gray-200 transition whitespace-nowrap">
-            App Store
-          </Link>
-          <Link href="/management-applications" className="hover:text-gray-200 transition whitespace-nowrap">
-            Applications
-          </Link>
-          <Link href="/management-users" className="hover:text-gray-200 transition whitespace-nowrap">
-            Users
-          </Link>
-          <Link href="/profile" className="hover:text-gray-200 transition whitespace-nowrap">
-            Profile
-          </Link>
-          <button className="hover:text-gray-200 transition whitespace-nowrap">Logout</button>
-        </nav>
-
-        <div className="sm:hidden relative">
-          <button 
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2 rounded-md bg-blue-600 hover:bg-blue-500 transition"
-          >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-
-          {isMobileMenuOpen && (
-            <div className="absolute right-0 top-12 mt-2 w-48 bg-white rounded-lg shadow-xl py-2 z-50 border border-gray-200">
-              <Link href="/dashboard" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">
-                Dashboard
-              </Link>
-              <Link href="/management-app-store" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">
-                App Store
-              </Link>
-              <Link href="/management-applications" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">
-                Applications
-              </Link>
-              <Link href="/management-users" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">
-                Users
-              </Link>
-              <Link href="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">
-                Profile
-              </Link>
-              <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">
-                Logout
-              </button>
-            </div>
-          )}
-        </div>
-      </header>
-
-      {/* Main Content */}
+    <LayoutDashboard>
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8">
         {/* Search and Controls */}
         <div className="mb-6 sm:mb-8">
@@ -484,26 +407,6 @@ export default function ApplicationsManagement() {
           )}
         </div>
       </div>
-
-      {/* Footer */}
-      <footer className="mt-8 sm:mt-12 lg:mt-16 py-3 sm:py-4 border-t border-gray-200/60 bg-white/50 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 text-center">
-          <p className="text-gray-700 font-medium text-xs sm:text-sm">
-            © 2024 Seatrium. IT Applications Dashboard.
-          </p>
-          <Link
-            href="https://seatrium.com"
-            target="_blank"
-            className="text-blue-500 hover:text-blue-700 font-semibold underline transition-colors mt-1 sm:mt-2 inline-block text-xs sm:text-sm"
-          >
-            seatrium.com
-          </Link>
-        </div>
-      </footer>
-
-      {/* Add Modal - You can implement this similarly to your existing modal */}
-      {/* Edit Modal - You can implement this similarly to your existing modal */}
-      {/* Detail Modal - You can implement this similarly to your existing modal */}
-    </div>
+    </LayoutDashboard>
   );
 }

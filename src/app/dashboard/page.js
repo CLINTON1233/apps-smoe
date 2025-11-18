@@ -1,19 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Download, User, Filter } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
-import { Poppins } from "next/font/google";
+import { Search, Download, Filter } from "lucide-react";
+import LayoutDashboard from "../components/Layout/LayoutDashboard";
 
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-});
-
-export default function AppStoreDashboard() {
+export default function AdminDashboard() {
   const [activeCategory, setActiveCategory] = useState("All");
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const categories = [
     "All",
@@ -39,84 +32,60 @@ export default function AppStoreDashboard() {
     },
     {
       id: 2,
-      name: "Shopee",
-      version: "v2.45.0",
-      description: "Leading e-commerce app in Southeast Asia",
-      downloads: "50M+",
-      size: "92 MB",
-      category: "Business",
-      rating: 4.7,
-      icon: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=80&h=80&fit=crop&crop=center",
-    },
-    {
-      id: 3,
-      name: "Gojek",
-      version: "v4.32.5",
-      description: "Super app for transportation, food delivery & payments",
-      downloads: "100M+",
-      size: "78 MB",
-      category: "Productivity",
-      rating: 4.6,
-      icon: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=80&h=80&fit=crop&crop=center",
-    },
-    {
-      id: 4,
-      name: "Spotify",
-      version: "v8.8.96",
-      description: "Music streaming with millions of songs and podcasts",
-      downloads: "500M+",
-      size: "65 MB",
-      category: "Entertainment",
-      rating: 4.9,
-      icon: "https://images.unsplash.com/photo-1611339555312-e607c8352fd7?w=80&h=80&fit=crop&crop=center",
-    },
-    {
-      id: 5,
       name: "Zoom",
-      version: "v5.17.0",
+      version: "v5.16.0",
       description: "Video conferencing and online meetings",
-      downloads: "300M+",
+      downloads: "500M+",
       size: "120 MB",
-      category: "Productivity",
+      category: "Business",
       rating: 4.5,
       icon: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=80&h=80&fit=crop&crop=center",
     },
     {
-      id: 6,
+      id: 3,
       name: "Netflix",
-      version: "v8.102.0",
-      description: "Stream TV shows, movies, and original content",
+      version: "v8.12.0",
+      description: "Stream movies and TV shows",
       downloads: "1B+",
-      size: "45 MB",
+      size: "95 MB",
       category: "Entertainment",
-      rating: 4.8,
+      rating: 4.7,
       icon: "https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=80&h=80&fit=crop&crop=center",
     },
     {
-      id: 7,
+      id: 4,
       name: "Duolingo",
-      version: "v5.101.3",
-      description: "Learn languages with fun, bite-sized lessons",
-      downloads: "200M+",
-      size: "35 MB",
+      version: "v5.101.2",
+      description: "Learn languages for free",
+      downloads: "500M+",
+      size: "65 MB",
       category: "Education",
-      rating: 4.7,
-      icon: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=80&h=80&fit=crop&crop=center",
+      rating: 4.6,
+      icon: "https://images.unsplash.com/photo-1531058020387-3be344556be6?w=80&h=80&fit=crop&crop=center",
     },
     {
-      id: 8,
-      name: "WhatsApp",
-      version: "v2.23.25",
-      description: "Simple, reliable messaging and calling",
-      downloads: "5B+",
-      size: "42 MB",
-      category: "Utilities",
-      rating: 4.4,
-      icon: "https://images.unsplash.com/photo-1611606063065-ee7946f0787a?w=80&h=80&fit=crop&crop=center",
+      id: 5,
+      name: "Spotify",
+      version: "v8.8.0",
+      description: "Music streaming service",
+      downloads: "500M+",
+      size: "75 MB",
+      category: "Entertainment",
+      rating: 4.8,
+      icon: "https://images.unsplash.com/photo-1611339555312-e810c9d6d13f?w=80&h=80&fit=crop&crop=center",
     },
+    {
+      id: 6,
+      name: "Microsoft Word",
+      version: "v16.0",
+      description: "Word processing application",
+      downloads: "1B+",
+      size: "450 MB",
+      category: "Productivity",
+      rating: 4.7,
+      icon: "https://images.unsplash.com/photo-1649180556628-9ba704115875?w=80&h=80&fit=crop&crop=center",
+    }
   ];
-
-  const [searchQuery, setSearchQuery] = useState("");
 
   const filteredApps = apps.filter((app) => {
     const matchesSearch = app.name
@@ -128,142 +97,43 @@ export default function AppStoreDashboard() {
   });
 
   return (
-    <div
-      className={`min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 ${poppins.className}`}
-    >
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 bg-blue-600 text-white shadow-md">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 sm:gap-3">
-          <Image
-            src="/seatrium.png"
-            alt="Seatrium Logo"
-            width={120}
-            height={120}
-            className="object-contain w-28 sm:w-32"
-          />
-        </Link>
-
-        {/* Desktop Navigation */}
-        <nav className="hidden sm:flex items-center gap-4 lg:gap-6 text-sm font-medium">
-          <Link href="/dashboard" className="hover:text-gray-200 transition whitespace-nowrap">
-            Dashboard
-          </Link>
-          <Link href="/management-app-store" className="hover:text-gray-200 transition whitespace-nowrap">
-            App Store
-          </Link>
-          <Link href="/management-users" className="hover:text-gray-200 transition whitespace-nowrap">
-            Users
-          </Link>
-          <Link href="/profile" className="hover:text-gray-200 transition whitespace-nowrap">
-            Profile
-          </Link>
-          <button className="hover:text-gray-200 transition whitespace-nowrap">Logout</button>
-        </nav>
-
-        {/* Mobile Menu */}
-        <div className="sm:hidden relative">
-          <button 
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2 rounded-md bg-blue-600 hover:bg-blue-500 transition"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            </svg>
-          </button>
-
-          {/* Mobile Dropdown Menu */}
-          {isMobileMenuOpen && (
-            <div className="absolute right-0 top-12 mt-2 w-48 bg-white rounded-lg shadow-xl py-2 z-50 border border-gray-200">
-              <Link 
-                href="/dashboard" 
-                className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Dashboard
-              </Link>
-              <Link 
-                href="/management-app-store" 
-                className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                App Store
-              </Link>
-              <Link 
-                href="/management-users" 
-                className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                User Management
-              </Link>
-              <Link 
-                href="/profile" 
-                className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Profile
-              </Link>
-              <button 
-                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Logout
-              </button>
-            </div>
-          )}
-        </div>
-      </header>
-
-      {/* Main Content */}
+    <LayoutDashboard>
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8">
+        <div className="mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+          <p className="text-gray-600 mt-2">Welcome to your administration panel</p>
+        </div>
+
         {/* Search Bar */}
         <div className="mb-6 sm:mb-8">
-          <div className="relative w-full mx-auto flex items-center">
-            {/* Search Icon in input */}
-            <Search
-              className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-black pointer-events-none"
-              size={20}
-            />
-
-            {/* Input */}
+          <div className="relative w-full mx-auto">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-black" size={20} />
             <input
               type="text"
               placeholder="Search applications..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 sm:pl-12 pr-20 sm:pr-24 py-3 sm:py-4 bg-white/80 backdrop-blur-sm border-2 border-gray-300 rounded-xl sm:rounded-2xl text-sm sm:text-base text-gray-900 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 shadow-lg transition-all duration-300 placeholder-gray-500"
+              className="w-full pl-10 pr-4 py-3 bg-white text-black placeholder-black border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-400"
             />
           </div>
         </div>
 
         {/* Category Filter */}
-        <div className="mb-6 sm:mb-8 lg:mb-10">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-            <div className="flex items-center gap-2 sm:gap-3 text-gray-800">
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex items-center gap-2 text-black">
               <Filter size={16} className="text-blue-600" />
-              <span className="font-semibold text-xs sm:text-sm">Categories:</span>
+              <span className="font-semibold">Categories:</span>
             </div>
-
-            <div className="flex flex-wrap gap-2 sm:gap-3">
+            <div className="flex flex-wrap gap-2">
               {categories.map((category) => (
                 <button
                   key={category}
                   onClick={() => setActiveCategory(category)}
-                  className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs font-medium transition-all duration-300 border ${
+                  className={`px-4 py-2 rounded-lg text-xs font-medium border transition-all duration-300 ${
                     activeCategory === category
-                      ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white border-blue-600 shadow-md shadow-blue-500/30"
-                      : "bg-white/80 text-gray-700 hover:bg-white border-gray-300 hover:border-blue-400 hover:shadow-md"
+                      ? "bg-blue-700 text-white border-blue-700 shadow-md"
+                      : "bg-white text-black border-gray-300 hover:border-blue-400"
                   }`}
                 >
                   {category}
@@ -274,80 +144,47 @@ export default function AppStoreDashboard() {
         </div>
 
         {/* Apps Grid */}
-        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {filteredApps.map((app) => (
             <div
               key={app.id}
-              className="bg-white/90 backdrop-blur-sm rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-lg hover:shadow-xl transition-all duration-500 border border-gray-200/30 hover:border-blue-200/50 hover:-translate-y-1 group"
+              className="bg-white rounded-xl p-4 shadow-lg border border-gray-200 hover:border-blue-300 transition-all duration-300 hover:-translate-y-1 flex flex-col"
             >
-              <div className="flex flex-col items-center text-center">
-                {/* App Icon */}
-                <div className="relative mb-3 sm:mb-4">
-                  <img
-                    src={app.icon}
-                    alt={app.name}
-                    className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-lg sm:rounded-xl object-cover shadow-md group-hover:scale-105 transition-transform duration-300"
-                  />
-                </div>
-
-                {/* App Name & Version */}
-                <h3 className="text-sm sm:text-base lg:text-lg font-bold text-gray-900 mb-1 sm:mb-2 group-hover:text-blue-700 transition-colors line-clamp-1">
-                  {app.name}
-                </h3>
-                
-                <div className="flex gap-1 sm:gap-2 mb-2 sm:mb-3 w-full">
-                  <p className="text-xs text-gray-500 font-medium bg-gray-100 px-1.5 sm:px-2 py-1 sm:py-1.5 rounded sm:rounded-lg flex-1 text-center">
-                    {app.version}
-                  </p>
-                  <p className="text-xs text-gray-500 font-medium bg-gray-100 px-1.5 sm:px-2 py-1 sm:py-1.5 rounded sm:rounded-lg flex-1 text-center">
-                    {app.size}
-                  </p>
-                </div>
-
-                {/* Description */}
-                <p className="text-xs text-gray-600 mb-3 sm:mb-4 line-clamp-2 leading-relaxed">
-                  {app.description}
-                </p>
-
-                {/* Category Badge */}
-                <span className="inline-block px-2 sm:px-3 py-1 sm:py-1.5 bg-gradient-to-r from-blue-100 to-blue-50 text-blue-700 text-xs font-bold rounded-full mb-3 sm:mb-4 border border-blue-200/50">
-                  {app.category}
-                </span>
-
-                {/* Download Button */}
-                <button className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium py-1.5 sm:py-2 rounded sm:rounded-lg flex items-center justify-center gap-1 sm:gap-2 transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 group/btn text-xs sm:text-xs">
-                  <Download
-                    size={14}
-                    className="group-hover/btn:scale-110 transition-transform"
-                  />
-                  <span>Download</span>
-                </button>
+              <div className="flex justify-center mb-3">
+                <img
+                  src={app.icon}
+                  alt={app.name}
+                  className="w-16 h-16 rounded-xl object-cover shadow-md"
+                />
               </div>
+              <h3 className="text-base font-bold text-gray-900 text-center">
+                {app.name}
+              </h3>
+              <div className="flex gap-2 justify-center mt-2">
+                <span className="text-xs bg-gray-100 px-2 py-1 rounded">
+                  {app.version}
+                </span>
+                <span className="text-xs bg-gray-100 px-2 py-1 rounded">
+                  {app.size}
+                </span>
+              </div>
+              <p className="text-xs text-gray-600 mt-3 text-center line-clamp-2">
+                {app.description}
+              </p>
+              <span className="mt-3 mx-auto bg-blue-50 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full border border-blue-200">
+                {app.category}
+              </span>
+              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg mt-6 hover:bg-blue-700 transition">
+                Download
+              </button>
             </div>
           ))}
         </div>
 
-        {/* Result Info */}
-        <div className="text-center text-gray-600 py-4 sm:py-6 font-medium text-xs sm:text-sm">
+        <p className="text-center text-gray-600 mt-6">
           Showing {filteredApps.length} of {apps.length} applications
-        </div>
+        </p>
       </div>
-
-      {/* Footer */}
-      <footer className="mt-8 sm:mt-12 lg:mt-16 py-3 sm:py-4 border-t border-gray-200/60 bg-white/50 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 text-center">
-          <p className="text-gray-700 font-medium text-xs sm:text-sm">
-            © 2024 Seatrium. IT Applications Dashboard.
-          </p>
-          <Link
-            href="https://seatrium.com"
-            target="_blank"
-            className="text-blue-500 hover:text-blue-700 font-semibold underline transition-colors mt-1 sm:mt-2 inline-block text-xs sm:text-sm"
-          >
-            seatrium.com
-          </Link>
-        </div>
-      </footer>
-    </div>
+    </LayoutDashboard>
   );
 }

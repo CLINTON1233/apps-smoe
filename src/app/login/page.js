@@ -18,15 +18,26 @@ export default function LoginPage() {
     email: "",
     password: "",
   });
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
     
-    // Simulasi login berhasil
-    console.log("Login attempt:", formData);
-    
-    // Redirect ke dashboard
-    router.push("/dashboard");
+    try {
+      console.log("Login attempt:", formData);
+      
+      // Simulasi loading
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Redirect ke admin dashboard
+      router.push("/admin/dashboard");
+      
+    } catch (error) {
+      console.error("Login error:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e) => {
@@ -102,6 +113,7 @@ export default function LoginPage() {
               onChange={handleChange}
               required
               className="w-full px-5 py-3 border border-gray-300 rounded-md text-base text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter your email"
             />
           </div>
 
@@ -127,15 +139,17 @@ export default function LoginPage() {
               onChange={handleChange}
               required
               className="w-full px-5 py-3 border border-gray-300 rounded-md text-base text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter your password"
             />
           </div>
 
           {/* Submit */}
           <button
             type="submit"
-            className="w-full bg-blue-800 text-white rounded-full py-3 text-base font-medium hover:bg-blue-900 transition"
+            disabled={loading}
+            className="w-full bg-blue-800 text-white rounded-full py-3 text-base font-medium hover:bg-blue-900 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Log in
+            {loading ? "Logging in..." : "Log in"}
           </button>
 
           {/* Sign Up Link */}
@@ -151,9 +165,7 @@ export default function LoginPage() {
       </div>
 
       <footer className="mt-auto py-4 text-center text-white text-xs md:text-sm space-y-1 border-t border-white/30">
-        <p>
-          IT Applications Dashboard
-        </p>
+        <p>IT Applications Dashboard</p>
         <Link
           href="https://seatrium.com"
           target="_blank"
