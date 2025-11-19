@@ -4,6 +4,7 @@ import { useState } from "react";
 import { LogOut } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Poppins } from "next/font/google";
 import Swal from "sweetalert2";
 
@@ -14,6 +15,7 @@ const poppins = Poppins({
 
 export default function LayoutDashboard({ children }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   const handleLogout = () => {
     Swal.fire({
@@ -56,6 +58,28 @@ export default function LayoutDashboard({ children }) {
     });
   };
 
+  // Function to check if a link is active
+  const isActiveLink = (href) => {
+    if (href === "/dashboard") {
+      return pathname === href;
+    }
+    return pathname.startsWith(href);
+  };
+
+  // Active link styles
+  const getActiveStyles = (href) => {
+    return isActiveLink(href)
+      ? "text-blue-600 font-semibold bg-blue-50 px-3 py-2 rounded-lg"
+      : "text-gray-700 hover:text-blue-600 hover:bg-gray-50 px-3 py-2 rounded-lg transition";
+  };
+
+  // Mobile active link styles
+  const getMobileActiveStyles = (href) => {
+    return isActiveLink(href)
+      ? "bg-blue-50 text-blue-600 font-semibold border-l-4 border-blue-600"
+      : "text-gray-700 hover:bg-gray-100";
+  };
+
   return (
     <div
       className={`min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 ${poppins.className}`}
@@ -66,38 +90,41 @@ export default function LayoutDashboard({ children }) {
           <Image
             src="/seatrium.png"
             alt="Seatrium Logo"
-            width={150}
-            height={150}
+            width={180}
+            height={180}
             className="object-contain w-28 sm:w-32"
           />
         </Link>
 
         <div className="flex items-center gap-4">
-          <nav className="hidden sm:flex items-center gap-4 lg:gap-6 text-sm font-medium">
+          <nav className="hidden sm:flex items-center gap-2 lg:gap-1 text-sm font-medium">
             <Link
               href="/dashboard"
-              className="hover:text-gray-600 transition font-semibold text-blue-600"
+              className={getActiveStyles("/dashboard")}
             >
               Dashboard
             </Link>
             <Link
               href="/management-app-store"
-              className="hover:text-gray-600 transition"
+              className={getActiveStyles("/management-app-store")}
             >
               App Store
             </Link>
             <Link
               href="/management-users"
-              className="hover:text-gray-600 transition"
+              className={getActiveStyles("/management-users")}
             >
               Users
             </Link>
-            <Link href="/profile" className="hover:text-gray-600 transition">
+            <Link 
+              href="/profile" 
+              className={getActiveStyles("/profile")}
+            >
               Profile
             </Link>
             <button
               onClick={handleLogout}
-              className="hover:text-gray-600 transition flex items-center gap-1"
+              className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 px-3 py-2 rounded-lg transition flex items-center gap-1"
             >
               <LogOut className="w-4 h-4" />
               Logout
@@ -134,28 +161,28 @@ export default function LayoutDashboard({ children }) {
               </div>
               <Link
                 href="/dashboard"
-                className="block px-4 py-2 text-gray-700 hover:bg-gray-100 font-semibold text-blue-600"
+                className={`block px-4 py-2 ${getMobileActiveStyles("/dashboard")}`}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Dashboard
               </Link>
               <Link
                 href="/management-app-store"
-                className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                className={`block px-4 py-2 ${getMobileActiveStyles("/management-app-store")}`}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 App Store
               </Link>
               <Link
                 href="/management-users"
-                className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                className={`block px-4 py-2 ${getMobileActiveStyles("/management-users")}`}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 User Management
               </Link>
               <Link
                 href="/profile"
-                className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                className={`block px-4 py-2 ${getMobileActiveStyles("/profile")}`}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Profile

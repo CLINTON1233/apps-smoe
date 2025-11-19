@@ -8,6 +8,7 @@ import {
   Plus,
   Edit,
   Trash2,
+  X,
   Eye,
   RefreshCw,
   ChevronDown,
@@ -53,23 +54,38 @@ export default function AdminApplicationsManagement() {
 
   const entriesOptions = [10, 25, 50, 100, "All"];
 
+  // Format file size
+  const formatFileSize = (bytes) => {
+    if (!bytes) return "N/A";
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    if (bytes < 1024 * 1024 * 1024)
+      return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+    return (bytes / (1024 * 1024 * 1024)).toFixed(1) + " GB";
+  };
+
   // Fetch applications
   const fetchApplications = async () => {
     setIsLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/applications`);
-      const result = await response.json();
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("API Response:", result);
       if (result.status === "success") {
         setApps(result.data);
       } else {
-        throw new Error(result.message);
+        throw new Error(result.message || "Unknown error occurred");
       }
     } catch (error) {
       console.error("Error fetching applications:", error);
       Swal.fire({
         title: "Error",
-        text: "Failed to load applications",
+        text: `Failed to load applications: ${error.message}`,
         icon: "error",
         confirmButtonColor: "#1e40af",
       });
@@ -78,29 +94,39 @@ export default function AdminApplicationsManagement() {
     }
   };
 
-  // Fetch categories
   const fetchCategories = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/categories`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const result = await response.json();
+      console.log("Categories Response:", result);
 
       if (result.status === "success") {
         setCategories(result.data);
+      } else {
+        throw new Error(result.message || "Unknown error occurred");
       }
     } catch (error) {
       console.error("Error fetching categories:", error);
+      Swal.fire({
+        title: "Error",
+        text: `Failed to load categories: ${error.message}`,
+        icon: "error",
+        confirmButtonColor: "#1e40af",
+      });
     }
   };
 
   // Initial data fetch
-  // useState(() => {
-  //   fetchApplications();
-  //   fetchCategories();
-  // }, []);
   useEffect(() => {
     fetchApplications();
     fetchCategories();
   }, []);
+
   // Filter data
   const filteredApps = apps.filter(
     (app) =>
@@ -108,6 +134,7 @@ export default function AdminApplicationsManagement() {
       app.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       app.category?.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
   // Pagination
   const totalPages = Math.ceil(filteredApps.length / itemsPerPage);
   const currentData = filteredApps.slice(
@@ -156,7 +183,7 @@ export default function AdminApplicationsManagement() {
     </div>
   );
 
-  // Handle Create Application - HAPUS url validation
+  // Handle Create Application
   const handleCreateApp = async () => {
     try {
       if (!newApp.title || !newApp.fullName || !newApp.categoryId) {
@@ -192,7 +219,6 @@ export default function AdminApplicationsManagement() {
         setNewApp({
           title: "",
           fullName: "",
-          url: "",
           categoryId: "",
           version: "1.0.0",
           description: "",
@@ -320,33 +346,67 @@ export default function AdminApplicationsManagement() {
     }
   };
 
-  // Handle File Download
+  // Handle File Download - PERBAIKAN DOWNLOAD
   const handleDownload = async (app) => {
     try {
+      // Show loading
+      Swal.fire({
+        title: "Downloading...",
+        text: "Please wait while we prepare your download",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
+
       const response = await fetch(
         `${API_BASE_URL}/applications/${app.id}/download`
       );
 
       if (!response.ok) {
-        throw new Error("Download failed");
+        throw new Error(
+          `Download failed: ${response.status} ${response.statusText}`
+        );
       }
 
+      // Get the blob from response
       const blob = await response.blob();
+
+      // Create download link
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
+      a.style.display = "none";
       a.href = url;
-      a.download = app.file_name || "download";
+
+      // Use the original file name from the application data
+      const fileName = app.file_name || `application_${app.id}.download`;
+      a.download = fileName;
+
       document.body.appendChild(a);
       a.click();
+
+      // Clean up
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+
+      // Close loading and show success
+      Swal.close();
+
+      Swal.fire({
+        title: "Download Started!",
+        text: `"${fileName}" is being downloaded to your computer.`,
+        icon: "success",
+        confirmButtonColor: "#1e40af",
+      });
 
       // Refresh applications to update download count
       fetchApplications();
     } catch (error) {
+      console.error("Download error:", error);
+      Swal.close();
       Swal.fire({
         title: "Download Error",
-        text: "Failed to download file",
+        text: `Failed to download file: ${error.message}`,
         icon: "error",
         confirmButtonColor: "#1e40af",
       });
@@ -416,6 +476,12 @@ export default function AdminApplicationsManagement() {
           </span>
         </div>
         <div className="flex justify-between">
+          <span className="text-gray-600">Version:</span>
+          <span className="text-gray-900 font-medium">
+            {app.version || "1.0.0"}
+          </span>
+        </div>
+        <div className="flex justify-between">
           <span className="text-gray-600">Status:</span>
           <span
             className={`px-2 py-1 rounded-full text-xs ${
@@ -428,16 +494,28 @@ export default function AdminApplicationsManagement() {
           </span>
         </div>
         {app.file_name && (
-          <div className="flex justify-between">
-            <span className="text-gray-600">File:</span>
-            <button
-              onClick={() => handleDownload(app)}
-              className="text-blue-600 hover:text-blue-800 text-xs flex items-center gap-1"
-            >
-              <FileText className="w-3 h-3" />
-              Download
-            </button>
-          </div>
+          <>
+            <div className="flex justify-between">
+              <span className="text-gray-600">File:</span>
+              <span className="text-gray-900 font-medium">{app.file_name}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">File Size:</span>
+              <span className="text-gray-900 font-medium">
+                {formatFileSize(app.file_size)}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Download:</span>
+              <button
+                onClick={() => handleDownload(app)}
+                className="text-blue-600 hover:text-blue-800 text-xs flex items-center gap-1"
+              >
+                <FileText className="w-3 h-3" />
+                Download
+              </button>
+            </div>
+          </>
         )}
       </div>
     </div>
@@ -451,7 +529,7 @@ export default function AdminApplicationsManagement() {
           onClick={onClose}
           className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition"
         >
-          <Trash2 className="w-5 h-5" />
+          <X className="w-5 h-5" />
         </button>
 
         <h2 className="text-xl font-bold text-gray-900 mb-4">
@@ -513,10 +591,7 @@ export default function AdminApplicationsManagement() {
                     {app.file_name}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {app.file_type} •{" "}
-                    {app.file_size
-                      ? (app.file_size / 1024 / 1024).toFixed(2) + " MB"
-                      : "N/A"}
+                    {app.file_type} • {formatFileSize(app.file_size)}
                   </p>
                   <p className="text-xs text-gray-500">
                     Downloads: {app.download_count}
@@ -558,264 +633,319 @@ export default function AdminApplicationsManagement() {
   return (
     <LayoutDashboard>
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8">
+        {/* Page Header */}
+        <div className="mb-6">
+          <h1 className="text-2xl sm:text-2xl font-bold text-gray-900">
+            Applications Management
+          </h1>
+          <p className="text-gray-600 mt-2">Manage all Seatrium Applications</p>
+        </div>
         {/* Search and Controls */}
+
         <div className="mb-6 sm:mb-8">
-          <div className="relative w-full mx-auto mb-4">
-            <Search
-              className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-gray-600"
-              size={20}
-            />
-            <input
-              type="text"
-              placeholder="Search applications..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 sm:pl-12 pr-4 py-3 bg-white/80 backdrop-blur-sm border-2 border-gray-300 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 shadow-lg transition-all duration-300 placeholder-gray-500"
-            />
-          </div>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+            <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+              <div className="flex-1 w-full">
+                <div className="relative max-w-md">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                  <input
+                    type="text"
+                    placeholder="Search applications by title, full name, or category..."
+                    className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+              </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
-            <div className="flex gap-2">
-              <button
-                onClick={fetchApplications}
-                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm font-medium text-gray-700"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Refresh
-              </button>
+              <div className="flex gap-2 w-full sm:w-auto">
+                <button
+                  onClick={fetchApplications}
+                  disabled={isLoading}
+                  className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm text-gray-700"
+                >
+                  <RefreshCw
+                    className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
+                  />
+                  {isLoading ? "Loading..." : "Refresh"}
+                </button>
+
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Application
+                </button>
+              </div>
             </div>
-
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
-            >
-              <Plus className="w-4 h-4" />
-              Add New Application
-            </button>
           </div>
         </div>
 
         {/* Table Header */}
         <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/30 mb-6">
-          <div className="px-4 py-3 border-b border-gray-200">
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">
-                  Applications Management
-                </h2>
-                <p className="text-sm text-gray-600 mt-1">
-                  Manage all infrastructure applications
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-600">
-                  Showing{" "}
-                  <span className="font-semibold">{filteredApps.length}</span>{" "}
-                  applications
-                </p>
+          {/* Table Header */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            {/* Table Header */}
+            <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-700">
+                  {filteredApps.length} of {apps.length} Applications
+                </span>
+                <ShowEntriesDropdown />
               </div>
             </div>
-          </div>
 
-          {/* Desktop Table */}
-          <div className="hidden sm:block overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Application
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Full Name
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Category
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    File
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Downloads
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {currentData.map((app) => (
-                  <tr
-                    key={app.id}
-                    className="hover:bg-blue-50/30 transition-all duration-200"
-                  >
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                          <div className="w-6 h-6 bg-blue-500 rounded flex items-center justify-center">
-                            <span className="text-white text-xs font-bold">
-                              A
+            {/* Loading State */}
+            {isLoading ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                <span className="ml-3 text-gray-600">
+                  Loading applications...
+                </span>
+              </div>
+            ) : (
+              <>
+                {/* Desktop Table */}
+                <div className="hidden sm:block overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-200">
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          Application
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          Full Name
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          Category
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          Version
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          File
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          File Size
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          Downloads
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {currentData.map((app) => (
+                        <tr
+                          key={app.id}
+                          className="hover:bg-gray-50 transition-colors"
+                        >
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-blue-100 rounded-lg">
+                                <div className="w-6 h-6 bg-blue-500 rounded flex items-center justify-center">
+                                  <span className="text-white text-xs font-bold">
+                                    A
+                                  </span>
+                                </div>
+                              </div>
+                              <div>
+                                <div className="font-medium text-gray-900">
+                                  {app.title}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  ID: {app.id}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900 max-w-[200px] truncate">
+                            {app.full_name}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              {app.category?.name}
                             </span>
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-sm font-semibold text-gray-900">
-                            {app.title}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            ID: {app.id}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="text-sm text-gray-900 max-w-[200px] truncate">
-                        {app.full_name}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {app.category?.name}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      {app.file_name ? (
-                        <div className="flex items-center gap-2">
-                          <FileText className="w-4 h-4 text-gray-400" />
-                          <span className="text-sm text-gray-900 truncate max-w-[150px]">
-                            {app.file_name}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-sm text-gray-500">No file</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          app.status === "active"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {app.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      {app.download_count}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => {
-                            setSelectedApp(app);
-                            setShowDetailModal(true);
-                          }}
-                          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all"
-                          title="View Details"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEditApp({
-                              id: app.id,
-                              title: app.title,
-                              fullName: app.full_name,
-                              categoryId: app.category_id,
-                              version: app.version || "1.0.0",
-                              description: app.description || "",
-                              file: null,
-                            });
-                            setShowEditModal(true);
-                          }}
-                          className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-all"
-                          title="Edit"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        {app.file_name && (
-                          <button
-                            onClick={() => handleDownload(app)}
-                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all"
-                            title="Download File"
-                          >
-                            <Download className="w-4 h-4" />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleDeleteApp(app)}
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-all"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile Cards */}
-          <div className="sm:hidden p-4">
-            {currentData.map((app) => (
-              <MobileAppCard key={app.id} app={app} />
-            ))}
-          </div>
-
-          {/* Pagination */}
-          {(totalPages > 1 || itemsPerPage !== 10) && (
-            <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <ShowEntriesDropdown />
-                  <p className="text-xs text-gray-700">
-                    Showing{" "}
-                    <span className="font-semibold">
-                      {filteredApps.length === 0
-                        ? 0
-                        : (currentPage - 1) * itemsPerPage + 1}
-                      -
-                      {Math.min(
-                        currentPage * itemsPerPage,
-                        filteredApps.length
-                      )}
-                    </span>{" "}
-                    of{" "}
-                    <span className="font-semibold">{filteredApps.length}</span>{" "}
-                    applications
-                  </p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-sm text-gray-900 font-medium">
+                              {app.version || "1.0.0"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            {app.file_name ? (
+                              <div className="flex items-center gap-2">
+                                <FileText className="w-4 h-4 text-gray-400" />
+                                <span className="text-sm text-gray-900 truncate max-w-[150px]">
+                                  {app.file_name}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-sm text-gray-500">
+                                No file
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            {app.file_size ? (
+                              <span className="text-sm text-gray-900">
+                                {formatFileSize(app.file_size)}
+                              </span>
+                            ) : (
+                              <span className="text-sm text-gray-500">N/A</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                app.status === "active"
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-red-100 text-red-800"
+                              }`}
+                            >
+                              {app.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {app.download_count}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => {
+                                  setSelectedApp(app);
+                                  setShowDetailModal(true);
+                                }}
+                                className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all"
+                                title="View Details"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEditApp({
+                                    id: app.id,
+                                    title: app.title,
+                                    fullName: app.full_name,
+                                    categoryId: app.category_id,
+                                    version: app.version || "1.0.0",
+                                    description: app.description || "",
+                                    file: null,
+                                  });
+                                  setShowEditModal(true);
+                                }}
+                                className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-all"
+                                title="Edit"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              {app.file_name && (
+                                <button
+                                  onClick={() => handleDownload(app)}
+                                  className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all"
+                                  title="Download File"
+                                >
+                                  <Download className="w-4 h-4" />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleDeleteApp(app)}
+                                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-all"
+                                title="Delete"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
 
-                {totalPages > 1 && (
-                  <div className="flex gap-1 justify-center">
-                    <button
-                      onClick={() =>
-                        setCurrentPage((prev) => Math.max(prev - 1, 1))
-                      }
-                      disabled={currentPage === 1}
-                      className="px-3 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
-                    >
-                      ← Prev
-                    </button>
-                    <button
-                      onClick={() =>
-                        setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-                      }
-                      disabled={currentPage === totalPages}
-                      className="px-3 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
-                    >
-                      Next →
-                    </button>
+                {/* Mobile Cards */}
+                <div className="sm:hidden p-4">
+                  {currentData.map((app) => (
+                    <MobileAppCard key={app.id} app={app} />
+                  ))}
+                </div>
+
+                {/* No Data State */}
+                {filteredApps.length === 0 && !isLoading && (
+                  <div className="text-center py-12 text-gray-400">
+                    <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg">No applications found</p>
+                    <p className="text-sm mt-1">
+                      {searchQuery
+                        ? "Try adjusting your search terms"
+                        : "Get started by adding a new application"}
+                    </p>
                   </div>
                 )}
-              </div>
-            </div>
-          )}
+
+                {/* Pagination */}
+                {(totalPages > 1 || itemsPerPage !== 10) &&
+                  filteredApps.length > 0 && (
+                    <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <ShowEntriesDropdown />
+                          <p className="text-xs text-gray-700">
+                            Showing{" "}
+                            <span className="font-semibold">
+                              {filteredApps.length === 0
+                                ? 0
+                                : (currentPage - 1) * itemsPerPage + 1}
+                              -
+                              {Math.min(
+                                currentPage * itemsPerPage,
+                                filteredApps.length
+                              )}
+                            </span>{" "}
+                            of{" "}
+                            <span className="font-semibold">
+                              {filteredApps.length}
+                            </span>{" "}
+                            applications
+                          </p>
+                        </div>
+
+                        {totalPages > 1 && (
+                          <div className="flex gap-1 justify-center">
+                            <button
+                              onClick={() =>
+                                setCurrentPage((prev) => Math.max(prev - 1, 1))
+                              }
+                              disabled={currentPage === 1}
+                              className="px-3 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              ← Prev
+                            </button>
+                            <button
+                              onClick={() =>
+                                setCurrentPage((prev) =>
+                                  Math.min(prev + 1, totalPages)
+                                )
+                              }
+                              disabled={currentPage === totalPages}
+                              className="px-3 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              Next →
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -827,16 +957,16 @@ export default function AdminApplicationsManagement() {
         />
       )}
 
-      {/* Add Modal */}
+      {/* Add Modal - PERBAIKAN WARNA FONT */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-3">
           <div className="bg-white rounded-lg w-full max-w-md p-6 shadow-xl animate-fade-in relative mx-auto max-h-[90vh] overflow-y-auto">
-            <button
+            {/* <button
               onClick={() => setShowAddModal(false)}
               className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition"
             >
-              <Trash2 className="w-5 h-5" />
-            </button>
+              <X className="w-5 h-5" />
+            </button> */}
 
             <h2 className="text-xl font-bold text-gray-900 mb-4">
               Add New Application
@@ -853,7 +983,7 @@ export default function AdminApplicationsManagement() {
                   onChange={(e) =>
                     setNewApp({ ...newApp, title: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500"
                   placeholder="Enter application title"
                 />
               </div>
@@ -868,7 +998,7 @@ export default function AdminApplicationsManagement() {
                   onChange={(e) =>
                     setNewApp({ ...newApp, fullName: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500"
                   placeholder="Enter full application name"
                 />
               </div>
@@ -882,11 +1012,17 @@ export default function AdminApplicationsManagement() {
                   onChange={(e) =>
                     setNewApp({ ...newApp, categoryId: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
                 >
-                  <option value="">Select Category</option>
+                  <option value="" className="text-gray-500">
+                    Select Category
+                  </option>
                   {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
+                    <option
+                      key={category.id}
+                      value={category.id}
+                      className="text-gray-900"
+                    >
                       {category.name}
                     </option>
                   ))}
@@ -903,7 +1039,7 @@ export default function AdminApplicationsManagement() {
                   onChange={(e) =>
                     setNewApp({ ...newApp, version: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500"
                   placeholder="1.0.0"
                 />
               </div>
@@ -918,7 +1054,7 @@ export default function AdminApplicationsManagement() {
                     setNewApp({ ...newApp, description: e.target.value })
                   }
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500"
                   placeholder="Enter application description"
                 />
               </div>
@@ -932,7 +1068,7 @@ export default function AdminApplicationsManagement() {
                   onChange={(e) =>
                     setNewApp({ ...newApp, file: e.target.files[0] })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 text-gray-900"
                   accept=".exe,.msi,.dmg,.pkg,.deb,.rpm,.apk,.ipa,.zip,.rar,.7z,.tar,.gz"
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -960,16 +1096,16 @@ export default function AdminApplicationsManagement() {
         </div>
       )}
 
-      {/* Edit Modal */}
+      {/* Edit Modal - PERBAIKAN WARNA FONT */}
       {showEditModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-3">
           <div className="bg-white rounded-lg w-full max-w-md p-6 shadow-xl animate-fade-in relative mx-auto max-h-[90vh] overflow-y-auto">
-            <button
+            {/* <button
               onClick={() => setShowEditModal(false)}
               className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition"
             >
-              <Trash2 className="w-5 h-5" />
-            </button>
+              <X className="w-5 h-5" />
+            </button> */}
 
             <h2 className="text-xl font-bold text-gray-900 mb-4">
               Edit Application
@@ -986,7 +1122,7 @@ export default function AdminApplicationsManagement() {
                   onChange={(e) =>
                     setEditApp({ ...editApp, title: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                 />
               </div>
 
@@ -1000,7 +1136,7 @@ export default function AdminApplicationsManagement() {
                   onChange={(e) =>
                     setEditApp({ ...editApp, fullName: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                 />
               </div>
 
@@ -1013,11 +1149,17 @@ export default function AdminApplicationsManagement() {
                   onChange={(e) =>
                     setEditApp({ ...editApp, categoryId: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
                 >
-                  <option value="">Select Category</option>
+                  <option value="" className="text-gray-500">
+                    Select Category
+                  </option>
                   {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
+                    <option
+                      key={category.id}
+                      value={category.id}
+                      className="text-gray-900"
+                    >
                       {category.name}
                     </option>
                   ))}
@@ -1034,7 +1176,7 @@ export default function AdminApplicationsManagement() {
                   onChange={(e) =>
                     setEditApp({ ...editApp, version: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                 />
               </div>
 
@@ -1048,7 +1190,7 @@ export default function AdminApplicationsManagement() {
                     setEditApp({ ...editApp, description: e.target.value })
                   }
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                 />
               </div>
 
@@ -1061,7 +1203,7 @@ export default function AdminApplicationsManagement() {
                   onChange={(e) =>
                     setEditApp({ ...editApp, file: e.target.files[0] })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 text-gray-900"
                   accept=".exe,.msi,.dmg,.pkg,.deb,.rpm,.apk,.ipa,.zip,.rar,.7z,.tar,.gz"
                 />
                 <p className="text-xs text-gray-500 mt-1">
