@@ -38,8 +38,8 @@ export default function LoginPage() {
           text: "Please fill in all fields",
           icon: "error",
           confirmButtonColor: "#1e40af",
-          background: '#1f2937',
-          color: '#f9fafb'
+          background: "#1f2937",
+          color: "#f9fafb",
         });
         setLoading(false);
         return;
@@ -60,37 +60,37 @@ export default function LoginPage() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.message || `HTTP error! status: ${response.status}`);
+        throw new Error(
+          result.message || `HTTP error! status: ${response.status}`
+        );
       }
 
       if (result.status === "success") {
         // Simpan user data ke localStorage
         localStorage.setItem("user", JSON.stringify(result.data.user));
-        
+
         // Show success message
         Swal.fire({
           title: "Success!",
           text: "Login successful!",
           icon: "success",
           confirmButtonColor: "#1e40af",
-          background: '#1f2937',
-          color: '#f9fafb'
+          background: "#1f2937",
+          color: "#f9fafb",
         });
 
         // Redirect ke dashboard berdasarkan role
         setTimeout(() => {
           const userRole = result.data.user.role;
-          if (userRole === 'superadmin' || userRole === 'admin') {
+          if (userRole === "superadmin" || userRole === "admin") {
             router.push("/dashboard");
           } else {
             router.push("/user/dashboard");
           }
         }, 1000);
-
       } else {
         throw new Error(result.message || "Login failed");
       }
-
     } catch (error) {
       console.error("Login error:", error);
       Swal.fire({
@@ -98,8 +98,8 @@ export default function LoginPage() {
         text: error.message || "Invalid email or password",
         icon: "error",
         confirmButtonColor: "#1e40af",
-        background: '#1f2937',
-        color: '#f9fafb'
+        background: "#1f2937",
+        color: "#f9fafb",
       });
     } finally {
       setLoading(false);
@@ -122,14 +122,13 @@ export default function LoginPage() {
 
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 border-b border-gray-700 text-white">
-             <Link href="/dashboard" className="flex items-center gap-2 sm:gap-3">
-         
+        <Link href="/dashboard" className="flex items-center gap-2 sm:gap-3">
           <Image
-            src="/seatrium_logo_white.png" 
+            src="/seatrium_logo_white.png"
             alt="Seatrium Logo"
             width={180}
             height={180}
-            className="object-contain w-28 sm:w-32 brightness-110" 
+            className="object-contain w-28 sm:w-32 brightness-110"
           />
         </Link>
         {/* <Link href="/dashboard" className="flex items-center gap-2 sm:gap-3">
@@ -140,12 +139,16 @@ export default function LoginPage() {
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center px-4 py-8 mt-[-30px]">
+      <div className="flex-1 flex items-center justify-center px-4 py-8 mt-[-5px]">
         <div className="max-w-md w-full">
           {/* Welcome Section */}
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-white mb-0">Welcome Back!</h1>
-            <p className="text-gray-400 text-lg">Log in to access your account</p>
+            <h1 className="text-3xl font-bold text-white mb-0">
+              Welcome Back!
+            </h1>
+            <p className="text-gray-400 text-base">
+              Log in to access your account
+            </p>
           </div>
 
           {/* Login Form */}
@@ -161,7 +164,10 @@ export default function LoginPage() {
 
             {/* Email Field */}
             <div className="mb-6">
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-3">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-300 mb-3"
+              >
                 Email address
               </label>
               <div className="relative">
@@ -185,7 +191,10 @@ export default function LoginPage() {
             {/* Password Field */}
             <div className="mb-6">
               <div className="flex justify-between items-center mb-3">
-                <label htmlFor="password" className="text-sm font-medium text-gray-300">
+                <label
+                  htmlFor="password"
+                  className="text-sm font-medium text-gray-300"
+                >
                   Password
                 </label>
                 <button
@@ -252,8 +261,6 @@ export default function LoginPage() {
                 "Log in"
               )}
             </button>
-
-         
           </form>
         </div>
       </div>
@@ -263,7 +270,11 @@ export default function LoginPage() {
         <div className="max-w-6xl mx-auto px-4">
           <p>IT Applications Dashboard</p>
           <p className="mt-1">
-            <Link href="https://seatrium.com" target="_blank" className="text-blue-400 hover:text-blue-300 transition">
+            <Link
+              href="https://seatrium.com"
+              target="_blank"
+              className="text-blue-400 hover:text-blue-300 transition"
+            >
               seatrium.com
             </Link>
           </p>
