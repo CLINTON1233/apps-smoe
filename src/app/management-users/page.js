@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Download, User, Filter, Plus, Edit, Trash2, RefreshCw, Eye, ChevronDown } from "lucide-react";
+import { Search, Download, User, Filter, Plus, Edit, Trash2, RefreshCw, Eye, ChevronDown, X } from "lucide-react";
 import { Poppins } from "next/font/google";
 import Swal from "sweetalert2";
-import LayoutDashboard from "../components/Layout/LayoutDashboard"; // Sesuaikan path sesuai struktur folder Anda
+import LayoutDashboard from "../components/Layout/LayoutDashboard";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -27,7 +27,7 @@ export default function AdminManagementUsers() {
   const [isMobile, setIsMobile] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Form states
+  // Form states dengan placeholder values
   const [formData, setFormData] = useState({
     nama: "",
     email: "",
@@ -85,6 +85,8 @@ export default function AdminManagementUsers() {
         title: "Error",
         text: error.message || "Failed to load users. Please check if the server is running.",
         confirmButtonColor: "#1e40af",
+        background: '#1f2937',
+        color: '#f9fafb'
       });
     } finally {
       setLoading(false);
@@ -95,7 +97,7 @@ export default function AdminManagementUsers() {
     fetchUsers();
   }, []);
 
-  // Handle form input change
+  // Handle form input change - FIXED VERSION
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -147,6 +149,8 @@ export default function AdminManagementUsers() {
           title: "Success",
           text: "User created successfully!",
           confirmButtonColor: "#1e40af",
+          background: '#1f2937',
+          color: '#f9fafb'
         });
         setShowAddModal(false);
         resetForm();
@@ -161,6 +165,8 @@ export default function AdminManagementUsers() {
         title: "Error",
         text: error.message || "Failed to create user. Please try again.",
         confirmButtonColor: "#1e40af",
+        background: '#1f2937',
+        color: '#f9fafb'
       });
     } finally {
       setSubmitting(false);
@@ -205,6 +211,8 @@ export default function AdminManagementUsers() {
           title: "Success",
           text: "User updated successfully!",
           confirmButtonColor: "#1e40af",
+          background: '#1f2937',
+          color: '#f9fafb'
         });
         setShowEditModal(false);
         resetForm();
@@ -219,6 +227,8 @@ export default function AdminManagementUsers() {
         title: "Error",
         text: error.message || "Failed to update user. Please try again.",
         confirmButtonColor: "#1e40af",
+        background: '#1f2937',
+        color: '#f9fafb'
       });
     } finally {
       setSubmitting(false);
@@ -235,6 +245,8 @@ export default function AdminManagementUsers() {
       confirmButtonColor: "#d33",
       cancelButtonColor: "#3085d6",
       confirmButtonText: "Yes, delete it!",
+      background: '#1f2937',
+      color: '#f9fafb'
     });
 
     if (result.isConfirmed) {
@@ -258,6 +270,8 @@ export default function AdminManagementUsers() {
             title: "Deleted!",
             text: "User has been deleted.",
             confirmButtonColor: "#1e40af",
+            background: '#1f2937',
+            color: '#f9fafb'
           });
           await fetchUsers(); // Refresh the list
         } else {
@@ -270,12 +284,14 @@ export default function AdminManagementUsers() {
           title: "Error",
           text: error.message || "Failed to delete user. Please try again.",
           confirmButtonColor: "#1e40af",
+          background: '#1f2937',
+          color: '#f9fafb'
         });
       }
     }
   };
 
-  // Reset form
+  // Reset form dengan placeholder yang jelas
   const resetForm = () => {
     setFormData({
       nama: "",
@@ -289,7 +305,7 @@ export default function AdminManagementUsers() {
     setSelectedUser(null);
   };
 
-  // Open edit modal
+  // Open edit modal dengan data yang benar
   const openEditModal = (user) => {
     setSelectedUser(user);
     setFormData({
@@ -304,7 +320,7 @@ export default function AdminManagementUsers() {
     setShowEditModal(true);
   };
 
-  // Open add modal
+  // Open add modal dengan form reset
   const openAddModal = () => {
     resetForm();
     setShowAddModal(true);
@@ -326,28 +342,28 @@ export default function AdminManagementUsers() {
     currentPage * itemsPerPage
   );
 
-  // Show Entries Dropdown Component
+  // Show Entries Dropdown Component - DARK MODE
   const ShowEntriesDropdown = () => (
     <div className="relative">
       <button
         onClick={() => setShowEntriesDropdown(!showEntriesDropdown)}
-        className={`flex items-center gap-1 px-3 py-1 text-xs border border-gray-300 rounded bg-white text-gray-700 hover:bg-gray-50 transition ${poppins.className}`}
+        className="flex items-center gap-1 px-3 py-1 text-xs border border-gray-600 rounded-lg bg-gray-700 text-gray-100 hover:bg-gray-600 transition"
       >
         Show {itemsPerPage === filteredUsers.length ? "All" : itemsPerPage}
         <ChevronDown className="w-3 h-3" />
       </button>
 
       {showEntriesDropdown && (
-        <div className="absolute bottom-full mb-1 left-0 w-20 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+        <div className="absolute bottom-full mb-1 left-0 w-20 bg-gray-700 border border-gray-600 rounded-lg shadow-lg z-10">
           {entriesOptions.map((option) => (
             <button
               key={option}
               onClick={() => handleItemsPerPageChange(option)}
-              className={`w-full text-left px-3 py-2 text-xs hover:bg-blue-50 hover:text-blue-600 transition ${
+              className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-600 hover:text-blue-400 transition ${
                 itemsPerPage ===
                 (option === "All" ? filteredUsers.length : option)
-                  ? "bg-blue-100 text-blue-600"
-                  : "text-gray-700"
+                  ? "bg-gray-600 text-blue-400"
+                  : "text-gray-100"
               }`}
             >
               {option === "All" ? "All" : option}
@@ -358,62 +374,60 @@ export default function AdminManagementUsers() {
     </div>
   );
 
-  // Mobile User Card Component
+  // Mobile User Card Component - DARK MODE
   const MobileUserCard = ({ user }) => {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-3">
-        <div className="flex justify-between items-start mb-2">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <div className="p-1.5 bg-blue-100 rounded-lg flex-shrink-0">
-              <User className="w-4 h-4 text-blue-600" />
+      <div className="bg-gray-800/90 backdrop-blur-sm rounded-xl p-4 shadow-xl border border-gray-700/30 mb-4">
+        <div className="flex justify-between items-start mb-3">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="p-2 bg-blue-700/50 rounded-lg flex-shrink-0">
+              <User className="w-4 h-4 text-blue-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <h3
-                className={`text-sm font-semibold text-gray-900 truncate ${poppins.className}`}
-              >
+              <h3 className="text-sm font-bold text-gray-100 truncate">
                 {user.nama || "No Name"}
               </h3>
-              <p className="text-xs text-gray-500 truncate">{user.email}</p>
+              <p className="text-xs text-gray-400 truncate">{user.email}</p>
             </div>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0 ml-2">
             <button
               onClick={() => openEditModal(user)}
-              className="p-1 text-gray-400 hover:text-green-600 rounded transition-all"
+              className="p-1 text-gray-500 hover:text-green-400 rounded transition-all"
             >
               <Edit className="w-3 h-3" />
             </button>
             <button
               onClick={() => handleDeleteUser(user.id)}
-              className="p-1 text-gray-400 hover:text-red-600 rounded transition-all"
+              className="p-1 text-gray-500 hover:text-red-400 rounded transition-all"
             >
               <Trash2 className="w-3 h-3" />
             </button>
           </div>
         </div>
 
-        <div className="space-y-1.5 text-xs">
+        <div className="space-y-2 text-xs">
           <div className="flex justify-between">
-            <span className="text-gray-600">Badge</span>
-            <span className="text-gray-900">{user.badge || "-"}</span>
+            <span className="text-gray-400">Badge</span>
+            <span className="text-gray-100">{user.badge || "-"}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">Phone</span>
-            <span className="text-gray-900">{user.telp || "-"}</span>
+            <span className="text-gray-400">Phone</span>
+            <span className="text-gray-100">{user.telp || "-"}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">Department</span>
-            <span className="text-gray-900">{user.departemen || "-"}</span>
+            <span className="text-gray-400">Department</span>
+            <span className="text-gray-100">{user.departemen || "-"}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">Role</span>
+            <span className="text-gray-400">Role</span>
             <span
               className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                 user.role === "admin"
-                  ? "bg-purple-500 text-white"
+                  ? "bg-purple-700 text-purple-100"
                   : user.role === "superadmin"
-                  ? "bg-red-500 text-white"
-                  : "bg-blue-500 text-white"
+                  ? "bg-red-700 text-red-100"
+                  : "bg-blue-700 text-blue-100"
               }`}
             >
               {user.role}
@@ -421,7 +435,7 @@ export default function AdminManagementUsers() {
           </div>
         </div>
 
-        <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200">
+        <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-700">
           <span className="text-xs text-gray-500">
             Created: {new Date(user.created_at).toLocaleDateString("en-US")}
           </span>
@@ -431,19 +445,250 @@ export default function AdminManagementUsers() {
     );
   };
 
+  // Modal Base Component - DARK MODE (FIXED)
+  const ModalBase = ({ title, children, onClose, onSubmit, submitText, isSubmitting }) => (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-3">
+      <div className="bg-gray-800 rounded-lg w-full max-w-md p-6 shadow-2xl animate-fade-in relative mx-auto border border-gray-700 max-h-[90vh] overflow-y-auto">
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 text-gray-400 hover:text-gray-100 transition"
+          disabled={isSubmitting}
+          type="button"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <h2 className="text-xl font-bold text-gray-100 mb-6">{title}</h2>
+        
+        <form onSubmit={onSubmit}>
+          {children}
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 text-sm rounded bg-gray-600 text-gray-100 hover:bg-gray-700 transition font-medium"
+              disabled={isSubmitting}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-1 px-4 py-2 text-sm rounded bg-blue-600 text-white hover:bg-blue-500 transition font-medium flex items-center justify-center"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Processing...
+                </>
+              ) : (
+                submitText
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+
+  // Form Field Component - DARK MODE (FIXED dengan placeholder)
+  const FormField = ({ label, name, type = "text", value, onChange, required = false, disabled = false, placeholder = "" }) => (
+    <div className="mb-4">
+      <label className="block text-sm font-medium text-gray-400 mb-1">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      {type === "select" ? (
+        <select
+          name={name}
+          value={value}
+          onChange={onChange}
+          required={required}
+          disabled={disabled}
+          className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-100 bg-gray-700"
+        >
+          <option value="admin">Admin</option>
+          <option value="guest">Guest</option>
+          <option value="superadmin">Super Admin</option>
+        </select>
+      ) : (
+        <input
+          type={type}
+          name={name}
+          value={value}
+          onChange={onChange}
+          required={required}
+          disabled={disabled}
+          placeholder={placeholder}
+          className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-100 bg-gray-700 placeholder-gray-500 transition-colors duration-200"
+        />
+      )}
+    </div>
+  );
+
+  // Add User Modal - DARK MODE (FIXED dengan placeholder)
+  const AddUserModal = () => (
+    <ModalBase
+      title="Add New User"
+      onClose={() => setShowAddModal(false)}
+      onSubmit={handleAddUser}
+      submitText="Add User"
+      isSubmitting={submitting}
+    >
+      <FormField
+        label="Full Name"
+        name="nama"
+        value={formData.nama}
+        onChange={handleInputChange}
+        required
+        disabled={submitting}
+        placeholder="Enter user's full name"
+      />
+      <FormField
+        label="Email Address"
+        name="email"
+        type="email"
+        value={formData.email}
+        onChange={handleInputChange}
+        required
+        disabled={submitting}
+        placeholder="Enter email address"
+      />
+      <FormField
+        label="Password"
+        name="password"
+        type="password"
+        value={formData.password}
+        onChange={handleInputChange}
+        required
+        disabled={submitting}
+        placeholder="Enter secure password"
+      />
+      <FormField
+        label="Badge Number"
+        name="badge"
+        value={formData.badge}
+        onChange={handleInputChange}
+        disabled={submitting}
+        placeholder="Enter badge number (optional)"
+      />
+      <FormField
+        label="Phone Number"
+        name="telp"
+        type="tel"
+        value={formData.telp}
+        onChange={handleInputChange}
+        disabled={submitting}
+        placeholder="Enter phone number (optional)"
+      />
+      <FormField
+        label="Department"
+        name="departemen"
+        value={formData.departemen}
+        onChange={handleInputChange}
+        disabled={submitting}
+        placeholder="Enter department name (optional)"
+      />
+      <FormField
+        label="Role"
+        name="role"
+        type="select"
+        value={formData.role}
+        onChange={handleInputChange}
+        required
+        disabled={submitting}
+      />
+    </ModalBase>
+  );
+
+  // Edit User Modal - DARK MODE (FIXED dengan placeholder)
+  const EditUserModal = () => (
+    <ModalBase
+      title="Edit User"
+      onClose={() => setShowEditModal(false)}
+      onSubmit={handleEditUser}
+      submitText="Update User"
+      isSubmitting={submitting}
+    >
+      <FormField
+        label="Full Name"
+        name="nama"
+        value={formData.nama}
+        onChange={handleInputChange}
+        required
+        disabled={submitting}
+        placeholder="Enter user's full name"
+      />
+      <FormField
+        label="Email Address"
+        name="email"
+        type="email"
+        value={formData.email}
+        onChange={handleInputChange}
+        disabled={true}
+        placeholder="Email cannot be changed"
+      />
+      <p className="text-xs text-gray-500 mb-4 -mt-2">
+        Email cannot be changed
+      </p>
+      <FormField
+        label="New Password (optional)"
+        name="password"
+        type="password"
+        value={formData.password}
+        onChange={handleInputChange}
+        placeholder="Enter new password to change (leave blank to keep current)"
+        disabled={submitting}
+      />
+      <FormField
+        label="Badge Number"
+        name="badge"
+        value={formData.badge}
+        onChange={handleInputChange}
+        disabled={submitting}
+        placeholder="Enter badge number"
+      />
+      <FormField
+        label="Phone Number"
+        name="telp"
+        type="tel"
+        value={formData.telp}
+        onChange={handleInputChange}
+        disabled={submitting}
+        placeholder="Enter phone number"
+      />
+      <FormField
+        label="Department"
+        name="departemen"
+        value={formData.departemen}
+        onChange={handleInputChange}
+        disabled={submitting}
+        placeholder="Enter department name"
+      />
+      <FormField
+        label="Role"
+        name="role"
+        type="select"
+        value={formData.role}
+        onChange={handleInputChange}
+        required
+        disabled={submitting}
+      />
+    </ModalBase>
+  );
+
   return (
     <LayoutDashboard>
-      {/* Main Content */}
-      <div className="p-4 sm:p-6">
-        <div className="max-w-7xl mx-auto">
+      {/* Main Content - DARK MODE */}
+      <div className="min-h-screen bg-gray-900 text-gray-100">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8">
           {/* Page Header */}
           <div className="mb-6">
-            <h1 className="text-2xl sm:text-2xl font-bold text-gray-900">User Management</h1>
-            <p className="text-gray-600 mt-2">Manage all users and their roles in the system</p>
+            <h1 className="text-2xl sm:text-2xl font-bold text-gray-100">User Management</h1>
+            <p className="text-gray-400 mt-2">Manage all users and their roles in the system</p>
           </div>
 
-          {/* Search and Actions */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+          {/* Search and Actions - DARK MODE */}
+          <div className="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-4 mb-6">
             <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
               <div className="flex-1 w-full">
                 <div className="relative max-w-md">
@@ -451,7 +696,7 @@ export default function AdminManagementUsers() {
                   <input
                     type="text"
                     placeholder="Search users by name, email, badge, or department..."
-                    className={`w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900 ${poppins.className}`}
+                    className="w-full pl-9 pr-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-gray-700 text-gray-100 placeholder-gray-500"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -460,7 +705,7 @@ export default function AdminManagementUsers() {
               
               <div className="flex gap-2 w-full sm:w-auto">
                 <button
-                  className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm text-gray-700"
+                  className="flex items-center gap-2 px-3 py-2 border border-gray-600 rounded-lg hover:bg-gray-700 transition text-sm text-gray-100 bg-gray-800"
                   onClick={fetchUsers}
                   disabled={loading}
                 >
@@ -469,7 +714,7 @@ export default function AdminManagementUsers() {
                 </button>
                 
                 <button
-                  className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm"
+                  className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition text-sm"
                   onClick={openAddModal}
                   disabled={loading}
                 >
@@ -480,12 +725,12 @@ export default function AdminManagementUsers() {
             </div>
           </div>
 
-          {/* Users Table/Cards */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          {/* Users Table/Cards - DARK MODE */}
+          <div className="bg-gray-800 rounded-xl shadow-xl border border-gray-700 overflow-hidden">
             {/* Table Header */}
-            <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
+            <div className="px-4 py-3 border-b border-gray-700 bg-gray-700 rounded-t-xl">
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-700">
+                <span className="text-sm font-medium text-gray-100">
                   {filteredUsers.length} of {users.length} Users
                 </span>
                 <ShowEntriesDropdown />
@@ -496,63 +741,63 @@ export default function AdminManagementUsers() {
             {loading ? (
               <div className="flex justify-center items-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                <span className="ml-3 text-gray-600">Loading users...</span>
+                <span className="ml-3 text-gray-400">Loading users...</span>
               </div>
             ) : !isMobile ? (
-              /* Desktop Table */
+              /* Desktop Table - DARK MODE */
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="bg-gray-50 border-b border-gray-200">
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <tr className="bg-gray-700 border-b border-gray-600">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-100 uppercase tracking-wider">
                         User
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-100 uppercase tracking-wider">
                         Email
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-100 uppercase tracking-wider">
                         Badge
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-100 uppercase tracking-wider">
                         Phone
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-100 uppercase tracking-wider">
                         Department
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-100 uppercase tracking-wider">
                         Role
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-100 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-gray-700 bg-gray-800">
                     {currentData.map((user) => (
-                      <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                      <tr key={user.id} className="hover:bg-gray-700 transition-colors">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
-                            <div className="p-2 bg-blue-100 rounded-lg">
-                              <User className="w-4 h-4 text-blue-600" />
+                            <div className="p-2 bg-blue-700/50 rounded-lg">
+                              <User className="w-4 h-4 text-blue-400" />
                             </div>
                             <div>
-                              <div className="font-medium text-gray-900">{user.nama || "No Name"}</div>
-                              <div className="text-sm text-gray-500">ID: {user.id}</div>
+                              <div className="font-medium text-gray-100">{user.nama || "No Name"}</div>
+                              <div className="text-sm text-gray-400">ID: {user.id}</div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{user.email}</td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{user.badge || "-"}</td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{user.telp || "-"}</td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{user.departemen || "-"}</td>
+                        <td className="px-4 py-3 text-sm text-gray-100">{user.email}</td>
+                        <td className="px-4 py-3 text-sm text-gray-100">{user.badge || "-"}</td>
+                        <td className="px-4 py-3 text-sm text-gray-100">{user.telp || "-"}</td>
+                        <td className="px-4 py-3 text-sm text-gray-100">{user.departemen || "-"}</td>
                         <td className="px-4 py-3">
                           <span
                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                               user.role === "admin"
-                                ? "bg-purple-500 text-white"
+                                ? "bg-purple-700 text-purple-100"
                                 : user.role === "superadmin"
-                                ? "bg-red-500 text-white"
-                                : "bg-blue-500 text-white"
+                                ? "bg-red-700 text-red-100"
+                                : "bg-blue-700 text-blue-100"
                             }`}
                           >
                             {user.role}
@@ -562,14 +807,14 @@ export default function AdminManagementUsers() {
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => openEditModal(user)}
-                              className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-all"
+                              className="p-1.5 text-gray-500 hover:text-green-400 hover:bg-gray-700 rounded transition-all"
                               title="Edit User"
                             >
                               <Edit className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleDeleteUser(user.id)}
-                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-all"
+                              className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-gray-700 rounded transition-all"
                               title="Delete User"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -582,7 +827,7 @@ export default function AdminManagementUsers() {
                 </table>
               </div>
             ) : (
-              /* Mobile Cards View */
+              /* Mobile Cards View - DARK MODE */
               <div className="p-4">
                 {currentData.map((user) => (
                   <MobileUserCard key={user.id} user={user} />
@@ -603,13 +848,13 @@ export default function AdminManagementUsers() {
               </div>
             )}
 
-            {/* Pagination */}
+            {/* Pagination - DARK MODE */}
             {(totalPages > 1 || itemsPerPage !== 10) && filteredUsers.length > 0 && (
-              <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
+              <div className="px-4 py-3 border-t border-gray-700 bg-gray-700">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <ShowEntriesDropdown />
-                    <p className="text-xs text-gray-700">
+                    <p className="text-xs text-gray-300">
                       Showing{" "}
                       <span className="font-semibold">
                         {filteredUsers.length === 0
@@ -636,7 +881,7 @@ export default function AdminManagementUsers() {
                           setCurrentPage((prev) => Math.max(prev - 1, 1))
                         }
                         disabled={currentPage === 1}
-                        className="px-3 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="px-3 py-1 text-xs font-medium text-gray-100 bg-gray-600 border border-gray-500 rounded hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
                         ← Prev
                       </button>
@@ -647,7 +892,7 @@ export default function AdminManagementUsers() {
                           )
                         }
                         disabled={currentPage === totalPages}
-                        className="px-3 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="px-3 py-1 text-xs font-medium text-gray-100 bg-gray-600 border border-gray-500 rounded hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
                         Next →
                       </button>
@@ -660,305 +905,9 @@ export default function AdminManagementUsers() {
         </div>
       </div>
 
-      {/* Add User Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-lg w-full max-w-md p-6 shadow-xl animate-fade-in relative max-h-[90vh] overflow-y-auto">
-            <button
-              onClick={() => setShowAddModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition"
-              disabled={submitting}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Add New User</h2>
-
-            <form onSubmit={handleAddUser} className="space-y-4">
-              <div>
-                <label className="block text-gray-700 text-sm font-medium mb-1">
-                  Name *
-                </label>
-                <input
-                  type="text"
-                  name="nama"
-                  value={formData.nama}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800"
-                  required
-                  disabled={submitting}
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 text-sm font-medium mb-1">
-                  Email *
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800"
-                  required
-                  disabled={submitting}
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 text-sm font-medium mb-1">
-                  Password *
-                </label>
-                <input
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800"
-                  required
-                  disabled={submitting}
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 text-sm font-medium mb-1">
-                  Badge Number
-                </label>
-                <input
-                  type="text"
-                  name="badge"
-                  value={formData.badge}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800"
-                  disabled={submitting}
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 text-sm font-medium mb-1">
-                  Phone
-                </label>
-                <input
-                  type="tel"
-                  name="telp"
-                  value={formData.telp}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800"
-                  disabled={submitting}
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 text-sm font-medium mb-1">
-                  Department
-                </label>
-                <input
-                  type="text"
-                  name="departemen"
-                  value={formData.departemen}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800"
-                  disabled={submitting}
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 text-sm font-medium mb-1">
-                  Role *
-                </label>
-                <select
-                  name="role"
-                  value={formData.role}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800 bg-white"
-                  disabled={submitting}
-                >
-                  <option value="admin">Admin</option>
-                  <option value="guest">Guest</option>
-                </select>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="flex-1 px-4 py-2 text-sm rounded bg-gray-200 text-gray-700 hover:bg-gray-300 transition font-medium"
-                  disabled={submitting}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 text-sm rounded bg-blue-600 text-white hover:bg-blue-700 transition font-medium flex items-center justify-center"
-                  disabled={submitting}
-                >
-                  {submitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Adding...
-                    </>
-                  ) : (
-                    'Add User'
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Edit User Modal */}
-      {showEditModal && selectedUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-lg w-full max-w-md p-6 shadow-xl animate-fade-in relative max-h-[90vh] overflow-y-auto">
-            <button
-              onClick={() => setShowEditModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition"
-              disabled={submitting}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Edit User</h2>
-
-            <form onSubmit={handleEditUser} className="space-y-4">
-              <div>
-                <label className="block text-gray-700 text-sm font-medium mb-1">
-                  Name *
-                </label>
-                <input
-                  type="text"
-                  name="nama"
-                  value={formData.nama}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800"
-                  required
-                  disabled={submitting}
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 text-sm font-medium mb-1">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800 bg-gray-100"
-                  disabled
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Email cannot be changed
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-gray-700 text-sm font-medium mb-1">
-                  New Password (optional)
-                </label>
-                <input
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  placeholder="Leave blank to keep current password"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800"
-                  disabled={submitting}
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 text-sm font-medium mb-1">
-                  Badge Number
-                </label>
-                <input
-                  type="text"
-                  name="badge"
-                  value={formData.badge}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800"
-                  disabled={submitting}
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 text-sm font-medium mb-1">
-                  Phone
-                </label>
-                <input
-                  type="tel"
-                  name="telp"
-                  value={formData.telp}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800"
-                  disabled={submitting}
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 text-sm font-medium mb-1">
-                  Department
-                </label>
-                <input
-                  type="text"
-                  name="departemen"
-                  value={formData.departemen}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800"
-                  disabled={submitting}
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 text-sm font-medium mb-1">
-                  Role *
-                </label>
-                <select
-                  name="role"
-                  value={formData.role}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800 bg-white"
-                  disabled={submitting}
-                >
-                  <option value="admin">Admin</option>
-                  <option value="guest">Guest</option>
-                </select>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowEditModal(false)}
-                  className="flex-1 px-4 py-2 text-sm rounded bg-gray-200 text-gray-700 hover:bg-gray-300 transition font-medium"
-                  disabled={submitting}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 text-sm rounded bg-blue-600 text-white hover:bg-blue-700 transition font-medium flex items-center justify-center"
-                  disabled={submitting}
-                >
-                  {submitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Updating...
-                    </>
-                  ) : (
-                    'Update User'
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Modals */}
+      {showAddModal && <AddUserModal />}
+      {showEditModal && <EditUserModal />}
     </LayoutDashboard>
   );
 }
