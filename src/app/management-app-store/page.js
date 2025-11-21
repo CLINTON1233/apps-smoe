@@ -14,6 +14,7 @@ import {
   FileText,
   Upload,
   Image as ImageIcon,
+  Check,
 } from "lucide-react";
 import LayoutDashboard from "../components/Layout/LayoutDashboard";
 import Swal from "sweetalert2";
@@ -33,6 +34,341 @@ const DynamicIcon = ({ iconName, ...props }) => {
   return <IconComponent {...props} />;
 };
 
+// Custom Hook untuk Icon Management
+const useIconManagement = () => {
+  const [icons, setIcons] = useState([]);
+
+  const fetchIcons = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/icons`);
+      if (!response.ok) throw new Error("Failed to fetch icons");
+      
+      const result = await response.json();
+      if (result.status === "success") {
+        setIcons(result.data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching icons:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchIcons();
+  }, []);
+
+  return { icons, refreshIcons: fetchIcons };
+};
+
+// Komponen Icon Management
+const IconManagementModal = ({ 
+  selectedIcon, 
+  onSelectIcon, 
+  onClose,
+  onUploadIcon 
+}) => {
+  const [icons, setIcons] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [newIconName, setNewIconName] = useState("");
+  const [customIconFile, setCustomIconFile] = useState(null);
+
+  // Fetch icons
+  const fetchIcons = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/icons`);
+      if (!response.ok) throw new Error("Failed to fetch icons");
+      
+      const result = await response.json();
+      if (result.status === "success") {
+        setIcons(result.data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching icons:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchIcons();
+  }, []);
+
+  // Filter icons based on search
+  const filteredIcons = icons.filter(icon =>
+    icon.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    icon.value?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Handle custom icon upload
+  const handleCustomIconUpload = async () => {
+    if (!customIconFile || !newIconName.trim()) {
+      Swal.fire({
+        title: "Validation Error",
+        text: "Please provide both icon name and file",
+        icon: "warning",
+        confirmButtonColor: "#3b82f6",
+      });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", customIconFile);
+      formData.append("name", newIconName.trim());
+
+      const response = await fetch(`${API_BASE_URL}/icons/custom`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (result.status === "success") {
+        const newIcon = result.data;
+        setIcons(prev => [...prev, newIcon]);
+        setCustomIconFile(null);
+        setNewIconName("");
+        setShowUploadModal(false);
+
+        Swal.fire({
+          title: "Success!",
+          text: "Custom icon uploaded successfully",
+          icon: "success",
+          confirmButtonColor: "#3b82f6",
+        });
+
+        if (onUploadIcon) {
+          onUploadIcon(newIcon);
+        }
+      } else {
+        throw new Error(result.message);
+      }
+    } catch (error) {
+      console.error("Error uploading custom icon:", error);
+      Swal.fire({
+        title: "Error",
+        text: "Failed to upload custom icon",
+        icon: "error",
+        confirmButtonColor: "#3b82f6",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Format file size
+  const formatFileSize = (bytes) => {
+    if (!bytes) return "N/A";
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] px-3">
+      <div className="bg-gray-800 rounded-lg w-full max-w-4xl p-6 shadow-2xl animate-fade-in relative mx-auto border border-gray-700 max-h-[80vh] overflow-y-auto">
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 text-gray-400 hover:text-gray-100 transition z-10"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <h2 className="text-xl font-bold text-gray-100 mb-6">
+          Select Application Icon
+        </h2>
+
+        {/* Search and Upload Header */}
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <div className="flex-1 relative">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search icons..."
+              className="w-full pl-9 pr-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-white bg-gray-700 placeholder-gray-400"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          
+          <button
+            onClick={() => setShowUploadModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm"
+          >
+            <Upload className="w-4 h-4" />
+            Upload Icon
+          </button>
+        </div>
+
+        {/* Icons Grid */}
+        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3 max-h-96 overflow-y-auto p-2">
+          {filteredIcons.map((icon) => (
+            <button
+              key={icon.id}
+              onClick={() => onSelectIcon(icon)}
+              className={`relative group flex flex-col items-center p-3 rounded-lg border transition-all ${
+                selectedIcon?.id === icon.id
+                  ? "bg-blue-600 border-blue-500 text-white"
+                  : "bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600"
+              }`}
+            >
+              {/* Icon Display */}
+              <div className="flex items-center justify-center w-8 h-8 mb-2">
+                {icon.type === "system" ? (
+                  <DynamicIcon iconName={icon.value} className="w-6 h-6" />
+                ) : icon.file_path ? (
+                  <Image
+                    src={`/${icon.file_path}`}
+                    alt={icon.name}
+                    width={24}
+                    height={24}
+                    className="w-6 h-6 object-contain"
+                    onError={(e) => {
+                      console.error("Failed to load icon image:", icon.file_path);
+                      e.target.style.display = "none";
+                    }}
+                  />
+                ) : (
+                  <ImageIcon className="w-6 h-6" />
+                )}
+              </div>
+
+              {/* Icon Name */}
+              <span className="text-xs text-center truncate w-full">
+                {icon.name}
+              </span>
+
+              {/* Selection Checkmark */}
+              {selectedIcon?.id === icon.id && (
+                <div className="absolute top-1 right-1">
+                  <Check className="w-3 h-3" />
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* No Icons State */}
+        {filteredIcons.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            <ImageIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p className="text-sm">
+              {searchQuery ? "No icons found" : "No icons available"}
+            </p>
+          </div>
+        )}
+
+        {/* Upload Modal */}
+        {showUploadModal && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-3">
+            <div className="bg-gray-800 rounded-lg w-full max-w-md p-6 shadow-2xl animate-fade-in relative">
+              <button
+                onClick={() => setShowUploadModal(false)}
+                className="absolute top-3 right-3 text-gray-400 hover:text-gray-100 transition"
+                disabled={uploading}
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <h2 className="text-xl font-bold text-gray-100 mb-4">
+                Upload Custom Icon
+              </h2>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">
+                    Icon Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={newIconName}
+                    onChange={(e) => setNewIconName(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white bg-gray-700"
+                    placeholder="Enter icon name"
+                    disabled={uploading}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">
+                    Icon File *
+                  </label>
+                  <div className="border-2 border-dashed border-gray-600 rounded-lg p-4 hover:border-blue-500 transition-colors">
+                    <input
+                      type="file"
+                      onChange={(e) => setCustomIconFile(e.target.files[0])}
+                      className="hidden"
+                      id="icon-upload"
+                      accept=".png,.jpg,.jpeg,.svg,.ico,.webp,.gif"
+                      disabled={uploading}
+                    />
+                    <label
+                      htmlFor="icon-upload"
+                      className="cursor-pointer flex flex-col items-center justify-center text-center"
+                    >
+                      {customIconFile ? (
+                        <>
+                          <ImageIcon className="w-8 h-8 text-blue-400 mb-2" />
+                          <span className="text-sm text-blue-400 font-medium">
+                            {customIconFile.name}
+                          </span>
+                          <span className="text-xs text-gray-400 mt-1">
+                            Size: {formatFileSize(customIconFile.size)}
+                          </span>
+                          <span className="text-xs text-gray-400 mt-1">
+                            Click to change file
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                          <span className="text-sm text-gray-400">
+                            <span className="text-blue-400 font-medium">
+                              Click to upload
+                            </span>{" "}
+                            custom icon
+                          </span>
+                          <span className="text-xs text-gray-500 mt-1">
+                            Supported formats: PNG, JPG, JPEG, SVG, ICO, WEBP, GIF
+                          </span>
+                        </>
+                      )}
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => setShowUploadModal(false)}
+                  disabled={uploading}
+                  className="px-4 py-2 text-sm font-medium text-gray-100 bg-gray-600 rounded-lg hover:bg-gray-700 transition disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCustomIconUpload}
+                  disabled={uploading || !customIconFile || !newIconName.trim()}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-500 transition disabled:opacity-50 flex items-center gap-2"
+                >
+                  {uploading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Uploading...
+                    </>
+                  ) : (
+                    "Upload Icon"
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export default function AdminApplicationsManagement() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedApp, setSelectedApp] = useState(null);
@@ -45,13 +381,14 @@ export default function AdminApplicationsManagement() {
   const [showEntriesDropdown, setShowEntriesDropdown] = useState(false);
   const [apps, setApps] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [icons, setIcons] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedIcon, setSelectedIcon] = useState(null);
-  const [customIconFile, setCustomIconFile] = useState(null);
+  
+  // Gunakan custom hook untuk icon management
+  const { icons, refreshIcons } = useIconManagement();
 
   // Form states
   const [newApp, setNewApp] = useState({
@@ -148,29 +485,6 @@ export default function AdminApplicationsManagement() {
     }
   };
 
-  // Fetch icons
-  const fetchIcons = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/icons`);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log("Icons Response:", result);
-
-      if (result.status === "success") {
-        setIcons(result.data || []);
-        console.log("Icons loaded:", result.data);
-      } else {
-        throw new Error(result.message || "Unknown error occurred");
-      }
-    } catch (error) {
-      console.error("Error fetching icons:", error);
-    }
-  };
-
   // Get icon data for app
   const getAppIcon = (app) => {
     if (!app.icon_id) return null;
@@ -181,7 +495,6 @@ export default function AdminApplicationsManagement() {
   useEffect(() => {
     fetchApplications();
     fetchCategories();
-    fetchIcons();
   }, []);
 
   // Filter data
@@ -251,68 +564,13 @@ export default function AdminApplicationsManagement() {
     setShowIconModal(false);
   };
 
-  // Handle custom icon upload
-  const handleCustomIconUpload = async () => {
-    if (!customIconFile) {
-      Swal.fire({
-        title: "Error",
-        text: "Please select a file to upload",
-        icon: "error",
-        confirmButtonColor: "#3b82f6",
-        background: "#1f2937",
-        color: "#f9fafb",
-      });
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("file", customIconFile);
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/icons/custom`, {
-        method: "POST",
-        body: formData,
-      });
-
-      const result = await response.json();
-
-      if (result.status === "success") {
-        const newIcon = result.data;
-        setIcons([...icons, newIcon]);
-        handleIconSelect(newIcon);
-        setCustomIconFile(null);
-
-        Swal.fire({
-          title: "Success!",
-          text: "Custom icon uploaded successfully",
-          icon: "success",
-          confirmButtonColor: "#3b82f6",
-          background: "#1f2937",
-          color: "#f9fafb",
-        });
-      } else {
-        throw new Error(result.message);
-      }
-    } catch (error) {
-      console.error("Error uploading custom icon:", error);
-      Swal.fire({
-        title: "Error",
-        text: "Failed to upload custom icon",
-        icon: "error",
-        confirmButtonColor: "#3b82f6",
-        background: "#1f2937",
-        color: "#f9fafb",
-      });
-    }
-  };
-
   // Get selected icon data
   const getSelectedIconData = () => {
     const iconId = showAddModal ? newApp.iconId : editApp.iconId;
     return icons.find((icon) => icon.id === parseInt(iconId));
   };
 
-  // Handle Create Application - UPDATE UNTUK ICON
+  // Handle Create Application
   const handleCreateApp = async () => {
     if (isSubmitting || isUploading) return;
 
@@ -423,7 +681,7 @@ export default function AdminApplicationsManagement() {
     }
   };
 
-  // Handle Update Application - UPDATE UNTUK ICON
+  // Handle Update Application
   const handleUpdateApp = async () => {
     if (isSubmitting || isUploading) return;
 
@@ -676,150 +934,6 @@ export default function AdminApplicationsManagement() {
       });
     }
   };
-
-  // Icon Selection Modal Component
-  const IconSelectionModal = () => (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] px-3">
-      <div className="bg-gray-800 rounded-lg w-full max-w-4xl p-6 shadow-2xl animate-fade-in relative mx-auto border border-gray-700 max-h-[80vh] overflow-y-auto">
-        <button
-          onClick={() => setShowIconModal(false)}
-          className="absolute top-3 right-3 text-gray-400 hover:text-gray-100 transition z-10"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        <h2 className="text-xl font-bold text-gray-100 mb-6">
-          Select Application Icon
-        </h2>
-
-        {/* Custom Icon Upload Section */}
-        <div className="mb-6 p-4 bg-gray-700/50 rounded-lg">
-          <h3 className="text-lg font-semibold text-gray-100 mb-3">
-            Upload Custom Icon
-          </h3>
-          <div className="flex gap-4 items-end">
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-400 mb-1">
-                Upload Icon File
-              </label>
-              <div className="border-2 border-dashed border-gray-600 rounded-lg p-4 hover:border-blue-500 transition-colors">
-                <input
-                  type="file"
-                  onChange={(e) => setCustomIconFile(e.target.files[0])}
-                  className="hidden"
-                  id="icon-upload"
-                  accept=".png,.jpg,.jpeg,.svg,.ico,.webp"
-                />
-                <label
-                  htmlFor="icon-upload"
-                  className="cursor-pointer flex flex-col items-center justify-center text-center"
-                >
-                  {customIconFile ? (
-                    <>
-                      <ImageIcon className="w-8 h-8 text-blue-400 mb-2" />
-                      <span className="text-sm text-blue-400 font-medium">
-                        {customIconFile.name}
-                      </span>
-                      <span className="text-xs text-gray-400 mt-1">
-                        Size: {formatFileSize(customIconFile.size)}
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                      <span className="text-sm text-gray-400">
-                        <span className="text-blue-400 font-medium">
-                          Click to upload
-                        </span>{" "}
-                        custom icon
-                      </span>
-                      <span className="text-xs text-gray-500 mt-1">
-                        Supported formats: PNG, JPG, JPEG, SVG, ICO, WEBP
-                      </span>
-                    </>
-                  )}
-                </label>
-              </div>
-            </div>
-            <button
-              onClick={handleCustomIconUpload}
-              disabled={!customIconFile}
-              className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-500 transition disabled:opacity-50 flex items-center gap-2"
-            >
-              <Upload className="w-4 h-4" />
-              Upload
-            </button>
-          </div>
-        </div>
-
-        {/* System Icons Grid */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-100 mb-3">
-            System Icons
-          </h3>
-          <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-3 max-h-96 overflow-y-auto p-2">
-            {icons
-              .filter((icon) => icon.type === "system")
-              .map((icon) => (
-                <button
-                  key={icon.id}
-                  onClick={() => handleIconSelect(icon)}
-                  className={`flex flex-col items-center p-3 rounded-lg border transition-all ${
-                    selectedIcon?.id === icon.id
-                      ? "bg-blue-600 border-blue-500 text-white"
-                      : "bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600"
-                  }`}
-                >
-                  <DynamicIcon iconName={icon.value} className="w-5 h-5 mb-1" />
-                  <span className="text-xs truncate w-full text-center">
-                    {icon.name}
-                  </span>
-                </button>
-              ))}
-          </div>
-        </div>
-
-        {/* Custom Icons Grid */}
-        {icons.filter((icon) => icon.type === "custom").length > 0 && (
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold text-gray-100 mb-3">
-              Custom Icons
-            </h3>
-            <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-3 max-h-96 overflow-y-auto p-2">
-              {icons
-                .filter((icon) => icon.type === "custom")
-                .map((icon) => (
-                  <button
-                    key={icon.id}
-                    onClick={() => handleIconSelect(icon)}
-                    className={`flex flex-col items-center p-3 rounded-lg border transition-all ${
-                      selectedIcon?.id === icon.id
-                        ? "bg-blue-600 border-blue-500 text-white"
-                        : "bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600"
-                    }`}
-                  >
-                    {icon.file_path ? (
-                      <Image
-                        src={`/${icon.file_path}`}
-                        alt={icon.name}
-                        width={20}
-                        height={20}
-                        className="w-5 h-5 mb-1 object-contain"
-                      />
-                    ) : (
-                      <ImageIcon className="w-5 h-5 mb-1" />
-                    )}
-                    <span className="text-xs truncate w-full text-center">
-                      {icon.name}
-                    </span>
-                  </button>
-                ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
 
   // Mobile Card View
   const MobileAppCard = ({ app }) => {
@@ -1468,7 +1582,7 @@ export default function AdminApplicationsManagement() {
           />
         )}
 
-        {/* Add Modal - DENGAN FIELD ICON */}
+        {/* Add Modal */}
         {showAddModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-3">
             <div className="bg-gray-800 rounded-lg w-full max-w-xl p-6 shadow-2xl animate-fade-in relative mx-auto border border-gray-700 max-h-[90vh] overflow-y-auto">
@@ -1738,7 +1852,7 @@ export default function AdminApplicationsManagement() {
           </div>
         )}
 
-        {/* Edit Modal - DENGAN FIELD ICON */}
+        {/* Edit Modal */}
         {showEditModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-3">
             <div className="bg-gray-800 rounded-lg w-full max-w-xl p-6 shadow-2xl animate-fade-in relative mx-auto border border-gray-700 max-h-[90vh] overflow-y-auto">
@@ -2000,7 +2114,17 @@ export default function AdminApplicationsManagement() {
         )}
 
         {/* Icon Selection Modal */}
-        {showIconModal && <IconSelectionModal />}
+        {showIconModal && (
+          <IconManagementModal
+            selectedIcon={selectedIcon}
+            onSelectIcon={handleIconSelect}
+            onClose={() => setShowIconModal(false)}
+            onUploadIcon={(newIcon) => {
+              // Refresh icons list after upload
+              refreshIcons();
+            }}
+          />
+        )}
       </div>
       {/* Footer */}
       <footer className="mt-12 py-6 text-center text-gray-400 text-sm border-t border-gray-700/50 relative z-10">
