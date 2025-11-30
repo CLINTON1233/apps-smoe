@@ -13,7 +13,8 @@ const poppins = Poppins({
   weight: ["300", "400", "500", "600", "700"],
 });
 
-const API_BASE_URL = "http://localhost:5000";
+// Gunakan environment variable atau default ke localhost:5000
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,6 +31,7 @@ export default function LoginPage() {
 
     try {
       console.log("Login attempt:", formData);
+      console.log("API URL:", `${API_BASE_URL}/auth/login`);
 
       // Validasi input
       if (!formData.email || !formData.password) {
@@ -45,25 +47,32 @@ export default function LoginPage() {
         return;
       }
 
-      // Kirim request ke backend
+      // Kirim request ke backend dengan error handling yang lebih baik
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: formData.email,
+          email: formData.email.trim().toLowerCase(),
           password: formData.password,
         }),
       });
 
-      const result = await response.json();
-
+      // Cek jika response tidak ok
       if (!response.ok) {
-        throw new Error(
-          result.message || `HTTP error! status: ${response.status}`
-        );
+        // Coba parse error message dari backend
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorResult = await response.json();
+          errorMessage = errorResult.message || errorMessage;
+        } catch (parseError) {
+          console.error("Error parsing error response:", parseError);
+        }
+        throw new Error(errorMessage);
       }
+
+      const result = await response.json();
 
       if (result.status === "success") {
         // Simpan user data ke localStorage
@@ -93,9 +102,17 @@ export default function LoginPage() {
       }
     } catch (error) {
       console.error("Login error:", error);
+
+      // Berikan pesan error yang lebih spesifik
+      let errorMessage = error.message;
+      if (error.message.includes("Failed to fetch")) {
+        errorMessage =
+          "Cannot connect to server. Please check if the backend is running.";
+      }
+
       Swal.fire({
         title: "Login Failed",
-        text: error.message || "Invalid email or password",
+        text: errorMessage,
         icon: "error",
         confirmButtonColor: "#1e40af",
         background: "#1f2937",
@@ -112,6 +129,27 @@ export default function LoginPage() {
       [e.target.name]: e.target.value,
     });
   };
+
+  // Test connection function untuk debugging
+  const testConnection = async () => {
+    try {
+      const testResponse = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: "test@test.com", password: "test" }),
+      });
+      console.log("Connection test status:", testResponse.status);
+    } catch (error) {
+      console.error("Connection test failed:", error);
+    }
+  };
+
+  // Panggil test connection saat component mount
+  // useEffect(() => {
+  //   testConnection();
+  // }, []);
 
   return (
     <div className={`relative min-h-screen flex flex-col ${poppins.className}`}>
@@ -131,11 +169,6 @@ export default function LoginPage() {
             className="object-contain w-28 sm:w-32 brightness-110"
           />
         </Link>
-        {/* <Link href="/dashboard" className="flex items-center gap-2 sm:gap-3">
-          <div className="text-1xl sm:text-1xl font-semibold tracking-wide text-blue-400">
-            Seatrium<span className="text-white">Apps</span>
-          </div>
-        </Link> */}
       </header>
 
       {/* Main Content */}
@@ -261,6 +294,11 @@ export default function LoginPage() {
                 "Log in"
               )}
             </button>
+
+            {/* Debug Info (bisa dihilangkan di production) */}
+            <div className="mt-4 text-xs text-gray-500 text-center">
+              API: {API_BASE_URL}
+            </div>
           </form>
         </div>
       </div>

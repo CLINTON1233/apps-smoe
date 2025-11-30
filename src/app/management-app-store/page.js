@@ -42,7 +42,7 @@ const useIconManagement = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/icons`);
       if (!response.ok) throw new Error("Failed to fetch icons");
-      
+
       const result = await response.json();
       if (result.status === "success") {
         setIcons(result.data || []);
@@ -60,11 +60,11 @@ const useIconManagement = () => {
 };
 
 // Komponen Icon Management
-const IconManagementModal = ({ 
-  selectedIcon, 
-  onSelectIcon, 
+const IconManagementModal = ({
+  selectedIcon,
+  onSelectIcon,
   onClose,
-  onUploadIcon 
+  onUploadIcon,
 }) => {
   const [icons, setIcons] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -78,7 +78,7 @@ const IconManagementModal = ({
     try {
       const response = await fetch(`${API_BASE_URL}/icons`);
       if (!response.ok) throw new Error("Failed to fetch icons");
-      
+
       const result = await response.json();
       if (result.status === "success") {
         setIcons(result.data || []);
@@ -93,9 +93,10 @@ const IconManagementModal = ({
   }, []);
 
   // Filter icons based on search
-  const filteredIcons = icons.filter(icon =>
-    icon.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    icon.value?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredIcons = icons.filter(
+    (icon) =>
+      icon.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      icon.value?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Handle custom icon upload
@@ -125,7 +126,7 @@ const IconManagementModal = ({
 
       if (result.status === "success") {
         const newIcon = result.data;
-        setIcons(prev => [...prev, newIcon]);
+        setIcons((prev) => [...prev, newIcon]);
         setCustomIconFile(null);
         setNewIconName("");
         setShowUploadModal(false);
@@ -190,7 +191,7 @@ const IconManagementModal = ({
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          
+
           <button
             onClick={() => setShowUploadModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm"
@@ -224,7 +225,10 @@ const IconManagementModal = ({
                     height={24}
                     className="w-6 h-6 object-contain"
                     onError={(e) => {
-                      console.error("Failed to load icon image:", icon.file_path);
+                      console.error(
+                        "Failed to load icon image:",
+                        icon.file_path
+                      );
                       e.target.style.display = "none";
                     }}
                   />
@@ -329,7 +333,8 @@ const IconManagementModal = ({
                             custom icon
                           </span>
                           <span className="text-xs text-gray-500 mt-1">
-                            Supported formats: PNG, JPG, JPEG, SVG, ICO, WEBP, GIF
+                            Supported formats: PNG, JPG, JPEG, SVG, ICO, WEBP,
+                            GIF
                           </span>
                         </>
                       )}
@@ -386,7 +391,7 @@ export default function AdminApplicationsManagement() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedIcon, setSelectedIcon] = useState(null);
-  
+
   // Gunakan custom hook untuk icon management
   const { icons, refreshIcons } = useIconManagement();
 
