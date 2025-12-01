@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Search,
   Download,
@@ -34,346 +34,6 @@ const DynamicIcon = ({ iconName, ...props }) => {
   return <IconComponent {...props} />;
 };
 
-// Custom Hook untuk Icon Management
-const useIconManagement = () => {
-  const [icons, setIcons] = useState([]);
-
-  const fetchIcons = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/icons`);
-      if (!response.ok) throw new Error("Failed to fetch icons");
-
-      const result = await response.json();
-      if (result.status === "success") {
-        setIcons(result.data || []);
-      }
-    } catch (error) {
-      console.error("Error fetching icons:", error);
-    }
-  };
-
-  useEffect(() => {
-    fetchIcons();
-  }, []);
-
-  return { icons, refreshIcons: fetchIcons };
-};
-
-// Komponen Icon Management
-const IconManagementModal = ({
-  selectedIcon,
-  onSelectIcon,
-  onClose,
-  onUploadIcon,
-}) => {
-  const [icons, setIcons] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showUploadModal, setShowUploadModal] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [newIconName, setNewIconName] = useState("");
-  const [customIconFile, setCustomIconFile] = useState(null);
-
-  // Fetch icons
-  const fetchIcons = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/icons`);
-      if (!response.ok) throw new Error("Failed to fetch icons");
-
-      const result = await response.json();
-      if (result.status === "success") {
-        setIcons(result.data || []);
-      }
-    } catch (error) {
-      console.error("Error fetching icons:", error);
-    }
-  };
-
-  useEffect(() => {
-    fetchIcons();
-  }, []);
-
-  // Filter icons based on search
-  const filteredIcons = icons.filter(
-    (icon) =>
-      icon.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      icon.value?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  // Handle custom icon upload
-  const handleCustomIconUpload = async () => {
-    if (!customIconFile || !newIconName.trim()) {
-      Swal.fire({
-        title: "Validation Error",
-        text: "Please provide both icon name and file",
-        icon: "warning",
-        confirmButtonColor: "#3b82f6",
-      });
-      return;
-    }
-
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", customIconFile);
-      formData.append("name", newIconName.trim());
-
-      const response = await fetch(`${API_BASE_URL}/icons/custom`, {
-        method: "POST",
-        body: formData,
-      });
-
-      const result = await response.json();
-
-      if (result.status === "success") {
-        const newIcon = result.data;
-        setIcons((prev) => [...prev, newIcon]);
-        setCustomIconFile(null);
-        setNewIconName("");
-        setShowUploadModal(false);
-
-        Swal.fire({
-          title: "Success!",
-          text: "Custom icon uploaded successfully",
-          icon: "success",
-          confirmButtonColor: "#3b82f6",
-        });
-
-        if (onUploadIcon) {
-          onUploadIcon(newIcon);
-        }
-      } else {
-        throw new Error(result.message);
-      }
-    } catch (error) {
-      console.error("Error uploading custom icon:", error);
-      Swal.fire({
-        title: "Error",
-        text: "Failed to upload custom icon",
-        icon: "error",
-        confirmButtonColor: "#3b82f6",
-      });
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  // Format file size
-  const formatFileSize = (bytes) => {
-    if (!bytes) return "N/A";
-    if (bytes < 1024) return bytes + " B";
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
-    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] px-3">
-      <div className="bg-gray-800 rounded-lg w-full max-w-4xl p-6 shadow-2xl animate-fade-in relative mx-auto border border-gray-700 max-h-[80vh] overflow-y-auto">
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 text-gray-400 hover:text-gray-100 transition z-10"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        <h2 className="text-xl font-bold text-gray-100 mb-6">
-          Select Application Icon
-        </h2>
-
-        {/* Search and Upload Header */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
-          <div className="flex-1 relative">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search icons..."
-              className="w-full pl-9 pr-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-white bg-gray-700 placeholder-gray-400"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-
-          <button
-            onClick={() => setShowUploadModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm"
-          >
-            <Upload className="w-4 h-4" />
-            Upload Icon
-          </button>
-        </div>
-
-        {/* Icons Grid */}
-        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3 max-h-96 overflow-y-auto p-2">
-          {filteredIcons.map((icon) => (
-            <button
-              key={icon.id}
-              onClick={() => onSelectIcon(icon)}
-              className={`relative group flex flex-col items-center p-3 rounded-lg border transition-all ${
-                selectedIcon?.id === icon.id
-                  ? "bg-blue-600 border-blue-500 text-white"
-                  : "bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600"
-              }`}
-            >
-              {/* Icon Display */}
-              <div className="flex items-center justify-center w-8 h-8 mb-2">
-                {icon.type === "system" ? (
-                  <DynamicIcon iconName={icon.value} className="w-6 h-6" />
-                ) : icon.file_path ? (
-                  <Image
-                    src={`/${icon.file_path}`}
-                    alt={icon.name}
-                    width={24}
-                    height={24}
-                    className="w-6 h-6 object-contain"
-                    onError={(e) => {
-                      console.error(
-                        "Failed to load icon image:",
-                        icon.file_path
-                      );
-                      e.target.style.display = "none";
-                    }}
-                  />
-                ) : (
-                  <ImageIcon className="w-6 h-6" />
-                )}
-              </div>
-
-              {/* Icon Name */}
-              <span className="text-xs text-center truncate w-full">
-                {icon.name}
-              </span>
-
-              {/* Selection Checkmark */}
-              {selectedIcon?.id === icon.id && (
-                <div className="absolute top-1 right-1">
-                  <Check className="w-3 h-3" />
-                </div>
-              )}
-            </button>
-          ))}
-        </div>
-
-        {/* No Icons State */}
-        {filteredIcons.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            <ImageIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p className="text-sm">
-              {searchQuery ? "No icons found" : "No icons available"}
-            </p>
-          </div>
-        )}
-
-        {/* Upload Modal */}
-        {showUploadModal && (
-          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-3">
-            <div className="bg-gray-800 rounded-lg w-full max-w-md p-6 shadow-2xl animate-fade-in relative">
-              <button
-                onClick={() => setShowUploadModal(false)}
-                className="absolute top-3 right-3 text-gray-400 hover:text-gray-100 transition"
-                disabled={uploading}
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              <h2 className="text-xl font-bold text-gray-100 mb-4">
-                Upload Custom Icon
-              </h2>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Icon Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={newIconName}
-                    onChange={(e) => setNewIconName(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white bg-gray-700"
-                    placeholder="Enter icon name"
-                    disabled={uploading}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Icon File *
-                  </label>
-                  <div className="border-2 border-dashed border-gray-600 rounded-lg p-4 hover:border-blue-500 transition-colors">
-                    <input
-                      type="file"
-                      onChange={(e) => setCustomIconFile(e.target.files[0])}
-                      className="hidden"
-                      id="icon-upload"
-                      accept=".png,.jpg,.jpeg,.svg,.ico,.webp,.gif"
-                      disabled={uploading}
-                    />
-                    <label
-                      htmlFor="icon-upload"
-                      className="cursor-pointer flex flex-col items-center justify-center text-center"
-                    >
-                      {customIconFile ? (
-                        <>
-                          <ImageIcon className="w-8 h-8 text-blue-400 mb-2" />
-                          <span className="text-sm text-blue-400 font-medium">
-                            {customIconFile.name}
-                          </span>
-                          <span className="text-xs text-gray-400 mt-1">
-                            Size: {formatFileSize(customIconFile.size)}
-                          </span>
-                          <span className="text-xs text-gray-400 mt-1">
-                            Click to change file
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                          <span className="text-sm text-gray-400">
-                            <span className="text-blue-400 font-medium">
-                              Click to upload
-                            </span>{" "}
-                            custom icon
-                          </span>
-                          <span className="text-xs text-gray-500 mt-1">
-                            Supported formats: PNG, JPG, JPEG, SVG, ICO, WEBP,
-                            GIF
-                          </span>
-                        </>
-                      )}
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 mt-6">
-                <button
-                  onClick={() => setShowUploadModal(false)}
-                  disabled={uploading}
-                  className="px-4 py-2 text-sm font-medium text-gray-100 bg-gray-600 rounded-lg hover:bg-gray-700 transition disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleCustomIconUpload}
-                  disabled={uploading || !customIconFile || !newIconName.trim()}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-500 transition disabled:opacity-50 flex items-center gap-2"
-                >
-                  {uploading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Uploading...
-                    </>
-                  ) : (
-                    "Upload Icon"
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
 export default function AdminApplicationsManagement() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedApp, setSelectedApp] = useState(null);
@@ -391,19 +51,24 @@ export default function AdminApplicationsManagement() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedIcon, setSelectedIcon] = useState(null);
-
-  // Gunakan custom hook untuk icon management
-  const { icons, refreshIcons } = useIconManagement();
+  const [icons, setIcons] = useState([]);
+  const [isLoadingIcons, setIsLoadingIcons] = useState(false);
+  
+  // New states for IconDropdown
+  const [showIconDropdown, setShowIconDropdown] = useState(false);
+  const [iconSearch, setIconSearch] = useState("");
+  const [showEditIconDropdown, setShowEditIconDropdown] = useState(false);
+  const [editIconSearch, setEditIconSearch] = useState("");
 
   // Form states
   const [newApp, setNewApp] = useState({
     title: "",
     fullName: "",
     categoryId: "",
-    iconId: "",
     version: "1.0.0",
     description: "",
     file: null,
+    iconId: "",
   });
 
   const [editApp, setEditApp] = useState({
@@ -411,10 +76,10 @@ export default function AdminApplicationsManagement() {
     title: "",
     fullName: "",
     categoryId: "",
-    iconId: "",
     version: "1.0.0",
     description: "",
     file: null,
+    iconId: "",
   });
 
   const entriesOptions = [10, 25, 50, 100, "All"];
@@ -429,6 +94,271 @@ export default function AdminApplicationsManagement() {
     return (bytes / (1024 * 1024 * 1024)).toFixed(1) + " GB";
   };
 
+  // AppIcon Component untuk menampilkan icon di table
+  const AppIcon = ({ app, className = "w-4 h-4" }) => {
+    const icon = app.icon || app.iconObject;
+    
+    // Jika icon adalah object (dari relations)
+    if (icon && typeof icon === 'object') {
+      const iconKey = icon.icon_key || icon.value;
+      
+      // Cek jika ini custom icon (file)
+      if (icon.type === 'custom' && icon.file_path) {
+        return (
+          <img 
+            src={`${API_BASE_URL}/${icon.file_path}`} 
+            alt={icon.name}
+            className={className}
+            onError={(e) => {
+              console.log("Failed to load icon image");
+              e.target.style.display = 'none';
+            }}
+          />
+        );
+      }
+      
+      // Gunakan Lucide icon
+      const IconComponent = LucideIcons[iconKey];
+      if (IconComponent) {
+        return <IconComponent className={className} />;
+      }
+    }
+    
+    // Fallback ke icon default
+    const GlobeIcon = LucideIcons.Globe;
+    return <GlobeIcon className={className} />;
+  };
+
+  // IconDropdown Component
+  const IconDropdown = ({ 
+    selectedIcon, 
+    onSelectIcon, 
+    isOpen, 
+    onToggle, 
+    searchQuery, 
+    onSearchChange,
+    isEdit = false
+  }) => {
+    const dropdownRef = useRef(null);
+    const inputRef = useRef(null);
+
+    const filteredIcons = icons.filter(
+      (icon) =>
+        icon.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        icon.icon_key?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        icon.category?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const IconComponent = ({ iconKey, className = "w-4 h-4" }) => {
+      // Import Lucide icons dynamically
+      const LucideIcon = LucideIcons[iconKey];
+      if (!LucideIcon && iconKey && iconKey.startsWith('icon-')) {
+        // Ini adalah custom icon (file)
+        return (
+          <img 
+            src={`${API_BASE_URL}/uploads/icons/${iconKey}`} 
+            alt="Custom Icon"
+            className={className}
+            onError={(e) => {
+              console.log("Failed to load icon image");
+              e.target.style.display = 'none';
+            }}
+          />
+        );
+      }
+      return LucideIcon ? <LucideIcon className={className} /> : <LucideIcons.Globe className={className} />;
+    };
+
+    useEffect(() => {
+      if (isOpen && inputRef.current) {
+        inputRef.current.focus();
+      }
+    }, [isOpen]);
+
+    useEffect(() => {
+      const handleClickOutside = (event) => {
+        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+          onToggle();
+        }
+      };
+
+      if (isOpen) {
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+          document.removeEventListener('mousedown', handleClickOutside);
+        };
+      }
+    }, [isOpen, onToggle]);
+
+    return (
+      <div className="relative" ref={dropdownRef}>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle();
+          }}
+          className="w-full px-3 py-2 text-sm border border-gray-600 rounded flex items-center justify-between bg-gray-700 text-white hover:bg-gray-600 transition"
+        >
+          <div className="flex items-center gap-2">
+            {selectedIcon ? (
+              <>
+                <div className="p-1 bg-blue-900/50 rounded">
+                  <IconComponent iconKey={selectedIcon.icon_key} className="w-4 h-4 text-blue-400" />
+                </div>
+                <span>{selectedIcon.name}</span>
+              </>
+            ) : (
+              <span className="text-gray-400">Select an icon</span>
+            )}
+          </div>
+          <ChevronDown className="w-4 h-4 text-gray-400" />
+        </button>
+
+        {isOpen && (
+          <div 
+            className="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 max-h-60 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Search Input */}
+            <div className="p-2 border-b border-gray-700">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  ref={inputRef}
+                  type="text"
+                  placeholder="Search icons..."
+                  className="w-full pl-8 pr-3 py-1 text-sm border border-gray-600 rounded text-white bg-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  value={searchQuery}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                  onKeyDown={(e) => e.stopPropagation()}
+                />
+              </div>
+            </div>
+
+            {/* Icons List */}
+            <div className="overflow-y-auto max-h-48">
+              {filteredIcons.length > 0 ? (
+                <div className="p-1 space-y-1">
+                  {filteredIcons.map((icon) => (
+                    <button
+                      key={icon.id}
+                      type="button"
+                      onClick={() => {
+                        onSelectIcon(icon);
+                        onSearchChange('');
+                        onToggle();
+                      }}
+                      className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-left rounded hover:bg-blue-900/50 hover:text-white transition ${
+                        selectedIcon?.id === icon.id
+                          ? "bg-blue-900 text-white"
+                          : "text-gray-300"
+                      }`}
+                    >
+                      <div className="p-1 bg-gray-700 rounded">
+                        <IconComponent iconKey={icon.icon_key} className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">{icon.name}</div>
+                        <div className="text-xs text-gray-400 truncate">
+                          {icon.category} • {icon.type}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 text-center text-gray-500 text-sm">
+                  No icons found
+                </div>
+              )}
+            </div>
+
+            {/* Upload Option */}
+            <div className="p-2 border-t border-gray-700">
+              <label className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 rounded cursor-pointer">
+                <Upload className="w-4 h-4" />
+                <span>Upload custom icon</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      handleUploadCustomIcon(file, isEdit ? 'edit' : 'add');
+                    }
+                  }}
+                />
+              </label>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Handle upload custom icon
+  const handleUploadCustomIcon = async (file, mode = 'add') => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('name', file.name.replace(/\.[^/.]+$/, ""));
+
+      const response = await fetch(`${API_BASE_URL}/icons/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.status === 'success') {
+          // Add new icon to the list
+          setIcons(prev => [...prev, result.data]);
+          
+          // Select the newly uploaded icon
+          setSelectedIcon(result.data);
+          
+          // Update state based on mode
+          if (mode === 'add') {
+            setNewApp(prev => ({
+              ...prev,
+              iconId: result.data.id.toString()
+            }));
+            setShowIconDropdown(false);
+          } else {
+            setEditApp(prev => ({
+              ...prev,
+              iconId: result.data.id.toString()
+            }));
+            setShowEditIconDropdown(false);
+          }
+          
+          Swal.fire({
+            title: 'Success!',
+            text: 'Custom icon uploaded successfully',
+            icon: 'success',
+            confirmButtonColor: '#3b82f6',
+            background: '#1f2937',
+            color: '#f9fafb',
+          });
+        }
+      } else {
+        throw new Error('Upload failed');
+      }
+    } catch (error) {
+      console.error('Error uploading custom icon:', error);
+      Swal.fire({
+        title: 'Error',
+        text: 'Failed to upload custom icon',
+        icon: 'error',
+        confirmButtonColor: '#3b82f6',
+        background: '#1f2937',
+        color: '#f9fafb',
+      });
+    }
+  };
+
   // Fetch applications
   const fetchApplications = async () => {
     setIsLoading(true);
@@ -440,7 +370,7 @@ export default function AdminApplicationsManagement() {
       }
 
       const result = await response.json();
-      console.log("API Response:", result);
+      console.log("Applications API Response:", result);
       if (result.status === "success") {
         setApps(result.data);
       } else {
@@ -453,6 +383,8 @@ export default function AdminApplicationsManagement() {
         text: `Failed to load applications: ${error.message}`,
         icon: "error",
         confirmButtonColor: "#3b82f6",
+        background: "#1f2937",
+        color: "#f9fafb",
       });
     } finally {
       setIsLoading(false);
@@ -486,7 +418,44 @@ export default function AdminApplicationsManagement() {
         text: `Failed to load categories: ${error.message}`,
         icon: "error",
         confirmButtonColor: "#3b82f6",
+        background: "#1f2937",
+        color: "#f9fafb",
       });
+    }
+  };
+
+  // Fetch icons
+  const fetchIcons = async () => {
+    setIsLoadingIcons(true);
+    try {
+      console.log("Fetching icons from:", `${API_BASE_URL}/icons`);
+      const response = await fetch(`${API_BASE_URL}/icons`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("Icons Response:", result);
+
+      if (result.status === "success") {
+        setIcons(result.data || []);
+        console.log("Icons loaded:", result.data?.length || 0);
+      } else {
+        throw new Error(result.message || "Unknown error occurred");
+      }
+    } catch (error) {
+      console.error("Error fetching icons:", error);
+      Swal.fire({
+        title: "Error",
+        text: `Failed to load icons: ${error.message}`,
+        icon: "error",
+        confirmButtonColor: "#3b82f6",
+        background: "#1f2937",
+        color: "#f9fafb",
+      });
+    } finally {
+      setIsLoadingIcons(false);
     }
   };
 
@@ -500,6 +469,7 @@ export default function AdminApplicationsManagement() {
   useEffect(() => {
     fetchApplications();
     fetchCategories();
+    fetchIcons();
   }, []);
 
   // Filter data
@@ -558,23 +528,6 @@ export default function AdminApplicationsManagement() {
     </div>
   );
 
-  // Handle icon selection
-  const handleIconSelect = (icon) => {
-    if (showAddModal) {
-      setNewApp({ ...newApp, iconId: icon.id });
-    } else if (showEditModal) {
-      setEditApp({ ...editApp, iconId: icon.id });
-    }
-    setSelectedIcon(icon);
-    setShowIconModal(false);
-  };
-
-  // Get selected icon data
-  const getSelectedIconData = () => {
-    const iconId = showAddModal ? newApp.iconId : editApp.iconId;
-    return icons.find((icon) => icon.id === parseInt(iconId));
-  };
-
   // Handle Create Application
   const handleCreateApp = async () => {
     if (isSubmitting || isUploading) return;
@@ -600,9 +553,13 @@ export default function AdminApplicationsManagement() {
       formData.append("title", newApp.title);
       formData.append("fullName", newApp.fullName);
       formData.append("categoryId", newApp.categoryId);
-      formData.append("iconId", newApp.iconId || "");
       formData.append("version", newApp.version);
       formData.append("description", newApp.description);
+      
+      // Add iconId jika ada
+      if (newApp.iconId) {
+        formData.append("iconId", newApp.iconId);
+      }
 
       if (newApp.file) {
         formData.append("file", newApp.file);
@@ -649,10 +606,10 @@ export default function AdminApplicationsManagement() {
           title: "",
           fullName: "",
           categoryId: "",
-          iconId: "",
           version: "1.0.0",
           description: "",
           file: null,
+          iconId: "",
         });
         setSelectedIcon(null);
         setUploadProgress(0);
@@ -711,9 +668,15 @@ export default function AdminApplicationsManagement() {
       formData.append("title", editApp.title);
       formData.append("fullName", editApp.fullName);
       formData.append("categoryId", editApp.categoryId);
-      formData.append("iconId", editApp.iconId || "");
       formData.append("version", editApp.version);
       formData.append("description", editApp.description);
+      
+      // Add iconId jika ada
+      if (editApp.iconId) {
+        formData.append("iconId", editApp.iconId);
+      } else {
+        formData.append("iconId", "");
+      }
 
       if (editApp.file) {
         formData.append("file", editApp.file);
@@ -854,7 +817,6 @@ export default function AdminApplicationsManagement() {
 
       console.log("Starting download for app:", app);
 
-      // Gunakan GET request untuk download
       const response = await fetch(
         `${API_BASE_URL}/applications/${app.id}/download`,
         {
@@ -875,7 +837,6 @@ export default function AdminApplicationsManagement() {
         );
       }
 
-      // Get the blob from response
       const blob = await response.blob();
       console.log("Blob received, size:", blob.size);
 
@@ -883,24 +844,20 @@ export default function AdminApplicationsManagement() {
         throw new Error("Downloaded file is empty");
       }
 
-      // Create download link
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.style.display = "none";
       a.href = url;
 
-      // Use the original file name from the application data
       const fileName = app.file_name || `application_${app.id}.download`;
       a.download = fileName;
 
       document.body.appendChild(a);
       a.click();
 
-      // Clean up
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      // Close loading and show success
       Swal.close();
 
       Swal.fire({
@@ -912,7 +869,6 @@ export default function AdminApplicationsManagement() {
         color: "#f9fafb",
       });
 
-      // Refresh applications to update download count
       setTimeout(() => {
         fetchApplications();
       }, 1000);
@@ -950,24 +906,7 @@ export default function AdminApplicationsManagement() {
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-900/50 rounded-lg">
               {appIcon ? (
-                appIcon.type === "system" ? (
-                  <DynamicIcon
-                    iconName={appIcon.value}
-                    className="w-6 h-6 text-blue-400"
-                  />
-                ) : appIcon.file_path ? (
-                  <Image
-                    src={`/${appIcon.file_path}`}
-                    alt={appIcon.name}
-                    width={24}
-                    height={24}
-                    className="w-6 h-6 object-contain"
-                  />
-                ) : (
-                  <div className="w-6 h-6 bg-blue-500 rounded flex items-center justify-center">
-                    <span className="text-white text-xs font-bold">A</span>
-                  </div>
-                )
+                <AppIcon app={app} className="w-6 h-6 text-blue-400" />
               ) : (
                 <div className="w-6 h-6 bg-blue-500 rounded flex items-center justify-center">
                   <span className="text-white text-xs font-bold">A</span>
@@ -1093,24 +1032,9 @@ export default function AdminApplicationsManagement() {
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               {appIcon ? (
-                appIcon.type === "system" ? (
-                  <DynamicIcon
-                    iconName={appIcon.value}
-                    className="w-8 h-8 text-blue-400"
-                  />
-                ) : appIcon.file_path ? (
-                  <Image
-                    src={`/${appIcon.file_path}`}
-                    alt={appIcon.name}
-                    width={32}
-                    height={32}
-                    className="w-8 h-8 object-contain"
-                  />
-                ) : (
-                  <div className="w-8 h-8 bg-blue-500 rounded flex items-center justify-center">
-                    <span className="text-white text-sm font-bold">A</span>
-                  </div>
-                )
+                <div className="p-2 bg-blue-900/50 rounded-lg">
+                  <AppIcon app={app} className="w-6 h-6 text-blue-400" />
+                </div>
               ) : (
                 <div className="w-8 h-8 bg-blue-500 rounded flex items-center justify-center">
                   <span className="text-white text-sm font-bold">A</span>
@@ -1221,7 +1145,7 @@ export default function AdminApplicationsManagement() {
               src="/seatrium_logo_white.png"
               alt="Seatrium Background Logo"
               fill
-              className="object-contain opacity-3 scale-75"
+              className="object-contain opacity-5 scale-75"
               priority
             />
           </div>
@@ -1258,14 +1182,17 @@ export default function AdminApplicationsManagement() {
 
                 <div className="flex gap-2 w-full sm:w-auto">
                   <button
-                    onClick={fetchApplications}
+                    onClick={() => {
+                      fetchApplications();
+                      fetchIcons();
+                    }}
                     disabled={isLoading}
-                    className="flex items-center gap-2 px-3 py-2 border border-gray-600 rounded-lg hover:bg-gray-700 transition text-sm text-gray-300"
+                    className="flex items-center gap-2 px-3 py-2 border border-gray-600 rounded-lg hover:bg-gray-700 transition text-sm text-gray-300 disabled:opacity-50"
                   >
                     <RefreshCw
                       className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
                     />
-                    {isLoading ? "Loading..." : "Refresh"}
+                    {isLoading ? "Loading..." : "Refresh All"}
                   </button>
 
                   <button
@@ -1351,26 +1278,7 @@ export default function AdminApplicationsManagement() {
                                 <div className="flex items-center gap-3">
                                   <div className="p-2 bg-blue-900/50 rounded-lg">
                                     {appIcon ? (
-                                      appIcon.type === "system" ? (
-                                        <DynamicIcon
-                                          iconName={appIcon.value}
-                                          className="w-6 h-6 text-blue-400"
-                                        />
-                                      ) : appIcon.file_path ? (
-                                        <Image
-                                          src={`/${appIcon.file_path}`}
-                                          alt={appIcon.name}
-                                          width={24}
-                                          height={24}
-                                          className="w-6 h-6 object-contain"
-                                        />
-                                      ) : (
-                                        <div className="w-6 h-6 bg-blue-500 rounded flex items-center justify-center">
-                                          <span className="text-white text-xs font-bold">
-                                            A
-                                          </span>
-                                        </div>
-                                      )
+                                      <AppIcon app={app} className="w-6 h-6 text-blue-400" />
                                     ) : (
                                       <div className="w-6 h-6 bg-blue-500 rounded flex items-center justify-center">
                                         <span className="text-white text-xs font-bold">
@@ -1636,57 +1544,6 @@ export default function AdminApplicationsManagement() {
                   />
                 </div>
 
-                {/* Icon Selection Field */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Application Icon
-                  </label>
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setShowIconModal(true)}
-                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 border border-gray-600 rounded-lg hover:bg-gray-700 transition text-sm text-gray-300 bg-gray-700"
-                    >
-                      {getSelectedIconData() ? (
-                        <>
-                          {getSelectedIconData().type === "system" ? (
-                            <DynamicIcon
-                              iconName={getSelectedIconData().value}
-                              className="w-4 h-4"
-                            />
-                          ) : (
-                            <Image
-                              src={`/${getSelectedIconData().file_path}`}
-                              alt={getSelectedIconData().name}
-                              width={16}
-                              height={16}
-                              className="w-4 h-4 object-contain"
-                            />
-                          )}
-                          <span>{getSelectedIconData().name}</span>
-                        </>
-                      ) : (
-                        <>
-                          <ImageIcon className="w-4 h-4" />
-                          <span>Select Icon</span>
-                        </>
-                      )}
-                    </button>
-                    {getSelectedIconData() && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setNewApp({ ...newApp, iconId: "" });
-                          setSelectedIcon(null);
-                        }}
-                        className="px-3 py-2 text-red-400 hover:text-red-300 transition text-sm"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-400 mb-1">
                     Category *
@@ -1719,6 +1576,31 @@ export default function AdminApplicationsManagement() {
                       No categories available. Please create categories first.
                     </p>
                   )}
+                </div>
+
+                {/* Icon Field - menggunakan IconDropdown */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">
+                    Application Icon
+                  </label>
+                  <IconDropdown
+                    selectedIcon={icons.find(
+                      (icon) => icon.id === parseInt(newApp.iconId)
+                    )}
+                    onSelectIcon={(icon) => {
+                      setNewApp({ ...newApp, iconId: icon.id.toString() });
+                    }}
+                    isOpen={showIconDropdown}
+                    onToggle={() => {
+                      setShowIconDropdown(!showIconDropdown);
+                      setIconSearch("");
+                    }}
+                    searchQuery={iconSearch}
+                    onSearchChange={setIconSearch}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Choose from icon library or upload your own icon
+                  </p>
                 </div>
 
                 <div>
@@ -1904,57 +1786,6 @@ export default function AdminApplicationsManagement() {
                   />
                 </div>
 
-                {/* Icon Selection Field */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Application Icon
-                  </label>
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setShowIconModal(true)}
-                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 border border-gray-600 rounded-lg hover:bg-gray-700 transition text-sm text-gray-300 bg-gray-700"
-                    >
-                      {getSelectedIconData() ? (
-                        <>
-                          {getSelectedIconData().type === "system" ? (
-                            <DynamicIcon
-                              iconName={getSelectedIconData().value}
-                              className="w-4 h-4"
-                            />
-                          ) : (
-                            <Image
-                              src={`/${getSelectedIconData().file_path}`}
-                              alt={getSelectedIconData().name}
-                              width={16}
-                              height={16}
-                              className="w-4 h-4 object-contain"
-                            />
-                          )}
-                          <span>{getSelectedIconData().name}</span>
-                        </>
-                      ) : (
-                        <>
-                          <ImageIcon className="w-4 h-4" />
-                          <span>Select Icon</span>
-                        </>
-                      )}
-                    </button>
-                    {getSelectedIconData() && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditApp({ ...editApp, iconId: "" });
-                          setSelectedIcon(null);
-                        }}
-                        className="px-3 py-2 text-red-400 hover:text-red-300 transition text-sm"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-400 mb-1">
                     Category *
@@ -1982,6 +1813,32 @@ export default function AdminApplicationsManagement() {
                       </option>
                     ))}
                   </select>
+                </div>
+
+                {/* Icon Field - menggunakan IconDropdown */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">
+                    Application Icon
+                  </label>
+                  <IconDropdown
+                    selectedIcon={icons.find(
+                      (icon) => icon.id === parseInt(editApp.iconId)
+                    )}
+                    onSelectIcon={(icon) => {
+                      setEditApp({ ...editApp, iconId: icon.id.toString() });
+                    }}
+                    isOpen={showEditIconDropdown}
+                    onToggle={() => {
+                      setShowEditIconDropdown(!showEditIconDropdown);
+                      setEditIconSearch("");
+                    }}
+                    searchQuery={editIconSearch}
+                    onSearchChange={setEditIconSearch}
+                    isEdit={true}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Choose from icon library or upload your own icon
+                  </p>
                 </div>
 
                 <div>
@@ -2116,19 +1973,6 @@ export default function AdminApplicationsManagement() {
               </div>
             </div>
           </div>
-        )}
-
-        {/* Icon Selection Modal */}
-        {showIconModal && (
-          <IconManagementModal
-            selectedIcon={selectedIcon}
-            onSelectIcon={handleIconSelect}
-            onClose={() => setShowIconModal(false)}
-            onUploadIcon={(newIcon) => {
-              // Refresh icons list after upload
-              refreshIcons();
-            }}
-          />
         )}
       </div>
       {/* Footer */}
