@@ -13,7 +13,7 @@ import {
   Tag,
   FileText,
 } from "lucide-react";
-import LayoutDashboard from "../components/Layout/LayoutDashboard";
+import LayoutDashboard from "../componentsAdmin/Layout/LayoutDashboard";
 import Swal from "sweetalert2";
 import Image from "next/image";
 

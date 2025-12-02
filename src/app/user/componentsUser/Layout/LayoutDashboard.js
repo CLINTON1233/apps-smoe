@@ -83,21 +83,31 @@ export default function LayoutDashboard({ children }) {
       reverseButtons: true,
       ...swalDarkConfig,
     }).then((result) => {
-      if (result.isConfirmed) {
-        if (typeof window !== "undefined") {
-          localStorage.removeItem("user");
-          Swal.fire({
-            title: "Berhasil Keluar!",
-            text: "Anda telah berhasil keluar.",
-            icon: "success",
-            timer: 1500,
-            showConfirmButton: false,
-            ...swalDarkConfig,
-          }).then(() => {
-            window.location.href = "/login";
-          });
-        }
-      }
+     if (result.isConfirmed) {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("user");
+    
+    // Konfigurasi khusus untuk sukses (icon hijau)
+    const swalSuccessConfig = {
+      background: "#1f2937",
+      color: "#f3f4f6",
+      iconColor: "#10b981",
+      confirmButtonColor: "#4CAF50",
+      cancelButtonColor: "#ef4444",
+    };
+    
+    Swal.fire({
+      title: "Berhasil Keluar!",
+      text: "Anda telah berhasil keluar.",
+      icon: "success",
+      timer: 1500,
+      showConfirmButton: false,
+      ...swalSuccessConfig, // Gunakan konfigurasi sukses
+    }).then(() => {
+      window.location.href = "/login";
+    });
+  }
+}
     });
   };
 
@@ -124,15 +134,15 @@ export default function LayoutDashboard({ children }) {
 
   // Daftar navigasi
   const navItems = [
-    { href: "/dashboard", label: "Dashboard", icon: DashboardIcon },
-    { href: "/management-app-store", label: "App Store", icon: Store },
-    {
-      href: "/management-categories",
-      label: "Categories",
-      icon: Package,
-    },
-    { href: "/management-users", label: "Users", icon: Users },
-    { href: "/profile", label: "Profile", icon: User },
+    { href: "/user/dashboard", label: "Dashboard", icon: DashboardIcon },
+    { href: "/user/management-app-store", label: "App Store", icon: Store },
+    // {
+    //   href: "/user/management-categories",
+    //   label: "Categories",
+    //   icon: Package,
+    // },
+    // { href: "/user/management-users", label: "Users", icon: Users },
+    { href: "/user/profile", label: "Profile", icon: User },
   ];
 
   // Format role untuk display

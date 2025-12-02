@@ -16,7 +16,7 @@ import {
   Image as ImageIcon,
   Check,
 } from "lucide-react";
-import LayoutDashboard from "../components/Layout/LayoutDashboard";
+import LayoutDashboard from "../componentsAdmin/Layout/LayoutDashboard";
 import Swal from "sweetalert2";
 import Image from "next/image";
 import * as LucideIcons from "lucide-react";
@@ -53,7 +53,7 @@ export default function AdminApplicationsManagement() {
   const [selectedIcon, setSelectedIcon] = useState(null);
   const [icons, setIcons] = useState([]);
   const [isLoadingIcons, setIsLoadingIcons] = useState(false);
-  
+
   // New states for IconDropdown
   const [showIconDropdown, setShowIconDropdown] = useState(false);
   const [iconSearch, setIconSearch] = useState("");
@@ -95,49 +95,169 @@ export default function AdminApplicationsManagement() {
   };
 
   // AppIcon Component untuk menampilkan icon di table
-  const AppIcon = ({ app, className = "w-4 h-4" }) => {
+  const AppIcon = ({ app, className = "w-6 h-6" }) => {
     const icon = app.icon || app.iconObject;
-    
-    // Jika icon adalah object (dari relations)
-    if (icon && typeof icon === 'object') {
-      const iconKey = icon.icon_key || icon.value;
-      
+
+    console.log("🔍 AppIcon Debug:", {
+      appId: app.id,
+      appTitle: app.title,
+      iconId: app.icon_id,
+      iconData: icon,
+      hasIcon: !!icon,
+    });
+
+    // Jika icon adalah object lengkap (dari backend relations)
+    if (icon && typeof icon === "object") {
+      const iconKey = icon.icon_key;
+
+      // Debug info
+      console.log("📦 Icon object found:", {
+        id: icon.id,
+        name: icon.name,
+        icon_key: iconKey,
+        type: icon.type,
+        file_path: icon.file_path,
+      });
+
       // Cek jika ini custom icon (file)
-      if (icon.type === 'custom' && icon.file_path) {
+      if (icon.type === "custom" && icon.file_path) {
+        console.log("🖼️ Rendering custom icon:", icon.file_path);
         return (
-          <img 
-            src={`${API_BASE_URL}/${icon.file_path}`} 
+          <img
+            src={`${API_BASE_URL}/${icon.file_path}`}
             alt={icon.name}
             className={className}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "contain",
+              borderRadius: "4px",
+            }}
             onError={(e) => {
-              console.log("Failed to load icon image");
-              e.target.style.display = 'none';
+              console.error("❌ Failed to load custom icon:", icon.file_path);
+              // Fallback ke default icon
+              e.target.style.display = "none";
+              // You might want to show a placeholder here
             }}
           />
         );
       }
-      
-      // Gunakan Lucide icon
-      const IconComponent = LucideIcons[iconKey];
+
+      // Gunakan Lucide icon jika icon_key valid
+      if (iconKey) {
+        // Cari nama icon yang tepat di LucideIcons
+        const iconName = iconKey;
+        console.log("🔤 Looking for Lucide icon:", iconName);
+
+        // Coba beberapa format
+        const possibleNames = [
+          iconName,
+          iconName.charAt(0).toUpperCase() + iconName.slice(1),
+          iconName
+            .replace(/([A-Z])/g, " $1")
+            .trim()
+            .replace(/ /g, ""),
+          iconName
+            .split("-")
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(""),
+        ];
+
+        for (const name of possibleNames) {
+          const IconComponent = LucideIcons[name];
+          if (IconComponent) {
+            console.log("✅ Found Lucide icon:", name);
+            return <IconComponent className={className} />;
+          }
+        }
+
+        console.log("❌ No Lucide icon found for any variation of:", iconName);
+      }
+    }
+
+    // Jika ada icon_id tapi tidak ada icon object, cari di icons list
+    if (app.icon_id && !icon) {
+      console.log(
+        "🔍 Icon ID exists but no object, searching in icons list..."
+      );
+      const foundIcon = icons.find((i) => i.id === app.icon_id);
+      if (foundIcon) {
+        console.log("✅ Found icon in icons list:", foundIcon.name);
+        // Rekursif panggil diri sendiri dengan icon yang ditemukan
+        return (
+          <AppIcon app={{ ...app, icon: foundIcon }} className={className} />
+        );
+      }
+    }
+
+    // Jika icon hanya berupa string (icon_key langsung dari backend lama)
+    if (app.icon && typeof app.icon === "string") {
+      console.log("📝 Icon is string:", app.icon);
+      const IconComponent = LucideIcons[app.icon];
       if (IconComponent) {
         return <IconComponent className={className} />;
       }
     }
-    
-    // Fallback ke icon default
-    const GlobeIcon = LucideIcons.Globe;
-    return <GlobeIcon className={className} />;
+
+    // Fallback ke icon default berdasarkan category
+    console.log("🔄 Falling back to default icon");
+
+    // Coba icon berdasarkan category
+    if (app.category?.name) {
+      const category = app.category.name.toLowerCase();
+      const categoryIcons = {
+        design: "Palette",
+        development: "Code",
+        productivity: "CheckSquare",
+        communication: "MessageSquare",
+        finance: "DollarSign",
+        graphics: "Image",
+        media: "Video",
+        education: "BookOpen",
+        utility: "Settings",
+        game: "Gamepad",
+        business: "Briefcase",
+        health: "Heart",
+      };
+
+      for (const [cat, iconName] of Object.entries(categoryIcons)) {
+        if (category.includes(cat)) {
+          const IconComponent = LucideIcons[iconName];
+          if (IconComponent) {
+            console.log(`🎯 Using category icon for ${category}: ${iconName}`);
+            return <IconComponent className={className} />;
+          }
+        }
+      }
+    }
+
+    // Ultimate fallback - icon A dengan background
+    console.log("⚠️ Ultimate fallback - showing default 'A' icon");
+    return (
+      <div
+        className={`${className} bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center`}
+        style={{
+          minWidth: className.includes("w-") ? "" : "24px",
+          minHeight: className.includes("h-") ? "" : "24px",
+        }}
+      >
+        <span className="text-white text-xs font-bold">
+          {app.title?.charAt(0)?.toUpperCase() || "A"}
+        </span>
+      </div>
+    );
   };
 
   // IconDropdown Component
-  const IconDropdown = ({ 
-    selectedIcon, 
-    onSelectIcon, 
-    isOpen, 
-    onToggle, 
-    searchQuery, 
+  const IconDropdown = ({
+    selectedIcon,
+    onSelectIcon,
+    isOpen,
+    onToggle,
+    searchQuery,
     onSearchChange,
-    isEdit = false
+    isEdit = false,
+    currentIconId = null,
   }) => {
     const dropdownRef = useRef(null);
     const inputRef = useRef(null);
@@ -149,24 +269,67 @@ export default function AdminApplicationsManagement() {
         icon.category?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    const IconComponent = ({ iconKey, className = "w-4 h-4" }) => {
-      // Import Lucide icons dynamically
-      const LucideIcon = LucideIcons[iconKey];
-      if (!LucideIcon && iconKey && iconKey.startsWith('icon-')) {
-        // Ini adalah custom icon (file)
-        return (
-          <img 
-            src={`${API_BASE_URL}/uploads/icons/${iconKey}`} 
-            alt="Custom Icon"
-            className={className}
-            onError={(e) => {
-              console.log("Failed to load icon image");
-              e.target.style.display = 'none';
-            }}
-          />
+    useEffect(() => {
+      console.log("IconDropdown - Icons loaded:", icons.length);
+      console.log("Current selectedIcon:", selectedIcon);
+      console.log("Current iconId from props:", currentIconId);
+
+      // Jika ada currentIconId tapi tidak ada selectedIcon, coba set
+      if (currentIconId && !selectedIcon) {
+        const foundIcon = icons.find(
+          (icon) => icon.id === parseInt(currentIconId)
         );
+        if (foundIcon) {
+          console.log("Found icon for currentIconId:", foundIcon);
+        }
       }
-      return LucideIcon ? <LucideIcon className={className} /> : <LucideIcons.Globe className={className} />;
+    }, [icons, selectedIcon, currentIconId]);
+
+    const IconComponent = ({ iconKey, className = "w-4 h-4" }) => {
+      console.log("IconComponent called with key:", iconKey);
+
+      // Cek jika iconKey adalah string dan ada di LucideIcons
+      if (iconKey && typeof iconKey === "string") {
+        // Cek jika ini custom icon (file)
+        if (iconKey.includes("icon-") && iconKey.includes(".")) {
+          return (
+            <img
+              src={`${API_BASE_URL}/uploads/icons/${iconKey}`}
+              alt="Custom Icon"
+              className={className}
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+              onError={(e) => {
+                console.error("Failed to load custom icon image:", iconKey);
+                e.target.style.display = "none";
+              }}
+            />
+          );
+        }
+
+        // Coba berbagai format nama icon
+        const possibleKeys = [
+          iconKey,
+          iconKey.charAt(0).toUpperCase() + iconKey.slice(1),
+          iconKey.replace(/-/g, ""),
+          iconKey
+            .split("-")
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(""),
+        ];
+
+        for (const key of possibleKeys) {
+          const LucideIcon = LucideIcons[key];
+          if (LucideIcon) {
+            console.log("Found Lucide icon for key:", key);
+            return <LucideIcon className={className} />;
+          }
+        }
+
+        console.log("No Lucide icon found for any variation of:", iconKey);
+      }
+
+      // Fallback
+      return <LucideIcons.Globe className={className} />;
     };
 
     useEffect(() => {
@@ -177,15 +340,18 @@ export default function AdminApplicationsManagement() {
 
     useEffect(() => {
       const handleClickOutside = (event) => {
-        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        if (
+          dropdownRef.current &&
+          !dropdownRef.current.contains(event.target)
+        ) {
           onToggle();
         }
       };
 
       if (isOpen) {
-        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener("mousedown", handleClickOutside);
         return () => {
-          document.removeEventListener('mousedown', handleClickOutside);
+          document.removeEventListener("mousedown", handleClickOutside);
         };
       }
     }, [isOpen, onToggle]);
@@ -204,9 +370,33 @@ export default function AdminApplicationsManagement() {
             {selectedIcon ? (
               <>
                 <div className="p-1 bg-blue-900/50 rounded">
-                  <IconComponent iconKey={selectedIcon.icon_key} className="w-4 h-4 text-blue-400" />
+                  <IconComponent
+                    iconKey={selectedIcon.icon_key}
+                    className="w-4 h-4 text-blue-400"
+                  />
                 </div>
                 <span>{selectedIcon.name}</span>
+              </>
+            ) : currentIconId ? (
+              <>
+                <div className="p-1 bg-blue-900/50 rounded">
+                  {/* Coba render icon dari currentIconId */}
+                  {(() => {
+                    const icon = icons.find(
+                      (icon) => icon.id === parseInt(currentIconId)
+                    );
+                    if (icon) {
+                      return (
+                        <IconComponent
+                          iconKey={icon.icon_key}
+                          className="w-4 h-4 text-blue-400"
+                        />
+                      );
+                    }
+                    return <span className="text-gray-400">Loading...</span>;
+                  })()}
+                </div>
+                <span className="text-gray-400">Icon selected</span>
               </>
             ) : (
               <span className="text-gray-400">Select an icon</span>
@@ -216,7 +406,7 @@ export default function AdminApplicationsManagement() {
         </button>
 
         {isOpen && (
-          <div 
+          <div
             className="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 max-h-60 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
@@ -246,7 +436,7 @@ export default function AdminApplicationsManagement() {
                       type="button"
                       onClick={() => {
                         onSelectIcon(icon);
-                        onSearchChange('');
+                        onSearchChange("");
                         onToggle();
                       }}
                       className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-left rounded hover:bg-blue-900/50 hover:text-white transition ${
@@ -256,7 +446,10 @@ export default function AdminApplicationsManagement() {
                       }`}
                     >
                       <div className="p-1 bg-gray-700 rounded">
-                        <IconComponent iconKey={icon.icon_key} className="w-4 h-4" />
+                        <IconComponent
+                          iconKey={icon.icon_key}
+                          className="w-4 h-4"
+                        />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="font-medium truncate">{icon.name}</div>
@@ -286,7 +479,7 @@ export default function AdminApplicationsManagement() {
                   onChange={(e) => {
                     const file = e.target.files[0];
                     if (file) {
-                      handleUploadCustomIcon(file, isEdit ? 'edit' : 'add');
+                      handleUploadCustomIcon(file, isEdit ? "edit" : "add");
                     }
                   }}
                 />
@@ -299,70 +492,72 @@ export default function AdminApplicationsManagement() {
   };
 
   // Handle upload custom icon
-  const handleUploadCustomIcon = async (file, mode = 'add') => {
+  const handleUploadCustomIcon = async (file, mode = "add") => {
     try {
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('name', file.name.replace(/\.[^/.]+$/, ""));
+      formData.append("file", file);
+      formData.append("name", file.name.replace(/\.[^/.]+$/, ""));
 
       const response = await fetch(`${API_BASE_URL}/icons/upload`, {
-        method: 'POST',
+        method: "POST",
         body: formData,
       });
 
       if (response.ok) {
         const result = await response.json();
-        if (result.status === 'success') {
+        if (result.status === "success") {
           // Add new icon to the list
-          setIcons(prev => [...prev, result.data]);
-          
+          setIcons((prev) => [...prev, result.data]);
+
           // Select the newly uploaded icon
           setSelectedIcon(result.data);
-          
+
           // Update state based on mode
-          if (mode === 'add') {
-            setNewApp(prev => ({
+          if (mode === "add") {
+            setNewApp((prev) => ({
               ...prev,
-              iconId: result.data.id.toString()
+              iconId: result.data.id.toString(),
             }));
             setShowIconDropdown(false);
           } else {
-            setEditApp(prev => ({
+            setEditApp((prev) => ({
               ...prev,
-              iconId: result.data.id.toString()
+              iconId: result.data.id.toString(),
             }));
             setShowEditIconDropdown(false);
           }
-          
+
           Swal.fire({
-            title: 'Success!',
-            text: 'Custom icon uploaded successfully',
-            icon: 'success',
-            confirmButtonColor: '#3b82f6',
-            background: '#1f2937',
-            color: '#f9fafb',
+            title: "Success!",
+            text: "Custom icon uploaded successfully",
+            icon: "success",
+            confirmButtonColor: "#3b82f6",
+            background: "#1f2937",
+            color: "#f9fafb",
           });
         }
       } else {
-        throw new Error('Upload failed');
+        throw new Error("Upload failed");
       }
     } catch (error) {
-      console.error('Error uploading custom icon:', error);
+      console.error("Error uploading custom icon:", error);
       Swal.fire({
-        title: 'Error',
-        text: 'Failed to upload custom icon',
-        icon: 'error',
-        confirmButtonColor: '#3b82f6',
-        background: '#1f2937',
-        color: '#f9fafb',
+        title: "Error",
+        text: "Failed to upload custom icon",
+        icon: "error",
+        confirmButtonColor: "#3b82f6",
+        background: "#1f2937",
+        color: "#f9fafb",
       });
     }
   };
 
   // Fetch applications
+  // PERBAIKAN: Enhanced fetchApplications untuk debugging
   const fetchApplications = async () => {
     setIsLoading(true);
     try {
+      console.log("=== FETCHING APPLICATIONS ===");
       const response = await fetch(`${API_BASE_URL}/applications`);
 
       if (!response.ok) {
@@ -370,9 +565,35 @@ export default function AdminApplicationsManagement() {
       }
 
       const result = await response.json();
-      console.log("Applications API Response:", result);
+      console.log("=== APPLICATIONS API RESPONSE ===", result);
+
+      // Debug: Periksa icon data untuk setiap aplikasi
+      if (result.data && Array.isArray(result.data)) {
+        console.log(`Total applications: ${result.data.length}`);
+        result.data.forEach((app, index) => {
+          console.log(`\nApp ${index + 1}:`, {
+            id: app.id,
+            title: app.title,
+            icon_id: app.icon_id,
+            hasIcon: !!app.icon,
+            iconData: app.icon,
+            iconType: app.icon?.type,
+            iconKey: app.icon?.icon_key,
+            iconName: app.icon?.name,
+          });
+
+          // Jika ada icon_id tapi icon data tidak ada
+          if (app.icon_id && !app.icon) {
+            console.warn(
+              `⚠️ App ${app.id} has icon_id ${app.icon_id} but no icon data!`
+            );
+          }
+        });
+      }
+
       if (result.status === "success") {
         setApps(result.data);
+        console.log("Applications updated in state");
       } else {
         throw new Error(result.message || "Unknown error occurred");
       }
@@ -388,6 +609,54 @@ export default function AdminApplicationsManagement() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Fetch icons
+  const fetchIcons = async () => {
+    setIsLoadingIcons(true);
+    try {
+      console.log("Fetching icons from:", `${API_BASE_URL}/icons`);
+      const response = await fetch(`${API_BASE_URL}/icons`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("=== ICONS DATA ===", result);
+
+      if (result.status === "success") {
+        setIcons(result.data || []);
+        console.log("Total icons loaded:", result.data?.length || 0);
+
+        // Debug: Periksa beberapa icon
+        if (result.data && Array.isArray(result.data)) {
+          result.data.slice(0, 5).forEach((icon, index) => {
+            console.log(`Icon ${index}:`, {
+              id: icon.id,
+              name: icon.name,
+              icon_key: icon.icon_key,
+              type: icon.type,
+              file_path: icon.file_path,
+            });
+          });
+        }
+      } else {
+        throw new Error(result.message || "Unknown error occurred");
+      }
+    } catch (error) {
+      console.error("Error fetching icons:", error);
+      Swal.fire({
+        title: "Error",
+        text: `Failed to load icons: ${error.message}`,
+        icon: "error",
+        confirmButtonColor: "#3b82f6",
+        background: "#1f2937",
+        color: "#f9fafb",
+      });
+    } finally {
+      setIsLoadingIcons(false);
     }
   };
 
@@ -424,47 +693,41 @@ export default function AdminApplicationsManagement() {
     }
   };
 
-  // Fetch icons
-  const fetchIcons = async () => {
-    setIsLoadingIcons(true);
-    try {
-      console.log("Fetching icons from:", `${API_BASE_URL}/icons`);
-      const response = await fetch(`${API_BASE_URL}/icons`);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log("Icons Response:", result);
-
-      if (result.status === "success") {
-        setIcons(result.data || []);
-        console.log("Icons loaded:", result.data?.length || 0);
-      } else {
-        throw new Error(result.message || "Unknown error occurred");
-      }
-    } catch (error) {
-      console.error("Error fetching icons:", error);
-      Swal.fire({
-        title: "Error",
-        text: `Failed to load icons: ${error.message}`,
-        icon: "error",
-        confirmButtonColor: "#3b82f6",
-        background: "#1f2937",
-        color: "#f9fafb",
-      });
-    } finally {
-      setIsLoadingIcons(false);
-    }
-  };
-
   // Get icon data for app
-  const getAppIcon = (app) => {
-    if (!app.icon_id) return null;
-    return icons.find((icon) => icon.id === parseInt(app.icon_id));
-  };
+const getAppIcon = (app) => {
+  console.log(`🔍 getAppIcon for app ${app.id}:`, {
+    icon_id: app.icon_id,
+    icon_in_app: app.icon,
+    has_relation: !!app.icon
+  });
 
+  // Pertama, coba gunakan icon dari relation (jika ada)
+  if (app.icon && typeof app.icon === 'object') {
+    console.log('✅ Using icon from app relation');
+    return app.icon;
+  }
+  
+  // Jika tidak ada relation, cari di icons list
+  if (app.icon_id) {
+    console.log(`🔍 Searching icon ${app.icon_id} in icons list`);
+    const foundIcon = icons.find(icon => {
+      const match = icon.id === app.icon_id;
+      if (match) {
+        console.log('✅ Found icon in icons list:', icon.name);
+      }
+      return match;
+    });
+    
+    if (foundIcon) {
+      return foundIcon;
+    } else {
+      console.warn(`⚠️ Icon ID ${app.icon_id} not found in icons list`);
+    }
+  }
+  
+  console.log('❌ No icon found for app');
+  return null;
+};
   // Initial data fetch
   useEffect(() => {
     fetchApplications();
@@ -529,6 +792,7 @@ export default function AdminApplicationsManagement() {
   );
 
   // Handle Create Application
+  // PERBAIKAN: Update handleCreateApp function
   const handleCreateApp = async () => {
     if (isSubmitting || isUploading) return;
 
@@ -549,56 +813,61 @@ export default function AdminApplicationsManagement() {
         return;
       }
 
+      console.log("Creating app with iconId:", newApp.iconId);
+      console.log(
+        "Selected icon:",
+        icons.find((icon) => icon.id === parseInt(newApp.iconId))
+      );
+
       const formData = new FormData();
       formData.append("title", newApp.title);
       formData.append("fullName", newApp.fullName);
       formData.append("categoryId", newApp.categoryId);
       formData.append("version", newApp.version);
       formData.append("description", newApp.description);
-      
-      // Add iconId jika ada
-      if (newApp.iconId) {
+
+      // PERBAIKAN: Handle iconId dengan benar
+      if (newApp.iconId && newApp.iconId !== "" && newApp.iconId !== "null") {
         formData.append("iconId", newApp.iconId);
+        console.log("Icon ID appended to formData:", newApp.iconId);
+      } else {
+        formData.append("iconId", ""); // Empty string jika tidak ada icon
+        console.log("No icon selected, sending empty string");
       }
 
       if (newApp.file) {
         formData.append("file", newApp.file);
       }
 
-      // Gunakan XMLHttpRequest untuk track progress
-      const xhr = new XMLHttpRequest();
+      // Log formData untuk debugging
+      console.log("FormData entries:");
+      for (let pair of formData.entries()) {
+        console.log(pair[0] + ": " + pair[1]);
+      }
 
-      const response = await new Promise((resolve, reject) => {
-        xhr.upload.addEventListener("progress", (event) => {
-          if (event.lengthComputable) {
-            const percentComplete = (event.loaded / event.total) * 100;
-            setUploadProgress(Math.round(percentComplete));
-          }
-        });
-
-        xhr.addEventListener("load", () => {
-          if (xhr.status === 201) {
-            resolve(JSON.parse(xhr.responseText));
-          } else {
-            reject(
-              new Error(
-                xhr.responseText
-                  ? JSON.parse(xhr.responseText).message
-                  : "Upload failed"
-              )
-            );
-          }
-        });
-
-        xhr.addEventListener("error", () => {
-          reject(new Error("Upload failed"));
-        });
-
-        xhr.open("POST", `${API_BASE_URL}/applications`);
-        xhr.send(formData);
+      // Gunakan fetch dengan FormData
+      const response = await fetch(`${API_BASE_URL}/applications`, {
+        method: "POST",
+        body: formData,
       });
 
-      const result = response;
+      console.log("Response status:", response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error response:", errorText);
+        let errorMessage = "Upload failed";
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.message || errorMessage;
+        } catch (e) {
+          errorMessage = errorText;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const result = await response.json();
+      console.log("Create result:", result);
 
       if (result.status === "success") {
         setShowAddModal(false);
@@ -611,9 +880,10 @@ export default function AdminApplicationsManagement() {
           file: null,
           iconId: "",
         });
-        setSelectedIcon(null);
         setUploadProgress(0);
-        await fetchApplications();
+
+        // PERBAIKAN: Refresh data setelah create
+        await Promise.all([fetchApplications(), fetchIcons()]);
 
         Swal.fire({
           title: "Success!",
@@ -630,7 +900,7 @@ export default function AdminApplicationsManagement() {
       console.error("Error creating application:", error);
       Swal.fire({
         title: "Error",
-        text: "Failed to create application",
+        text: `Failed to create application: ${error.message}`,
         icon: "error",
         confirmButtonColor: "#3b82f6",
         background: "#1f2937",
@@ -643,7 +913,7 @@ export default function AdminApplicationsManagement() {
     }
   };
 
-  // Handle Update Application
+  // PERBAIKAN: Update handleUpdateApp function
   const handleUpdateApp = async () => {
     if (isSubmitting || isUploading) return;
 
@@ -664,63 +934,75 @@ export default function AdminApplicationsManagement() {
         return;
       }
 
+      console.log("Updating app with iconId:", editApp.iconId);
+      console.log(
+        "Selected icon:",
+        icons.find((icon) => icon.id === parseInt(editApp.iconId))
+      );
+
       const formData = new FormData();
       formData.append("title", editApp.title);
       formData.append("fullName", editApp.fullName);
       formData.append("categoryId", editApp.categoryId);
       formData.append("version", editApp.version);
       formData.append("description", editApp.description);
-      
-      // Add iconId jika ada
-      if (editApp.iconId) {
+
+      // PERBAIKAN: Handle iconId dengan benar
+      if (
+        editApp.iconId &&
+        editApp.iconId !== "" &&
+        editApp.iconId !== "null"
+      ) {
         formData.append("iconId", editApp.iconId);
+        console.log("Icon ID appended to formData:", editApp.iconId);
       } else {
-        formData.append("iconId", "");
+        formData.append("iconId", ""); // Empty string untuk menghapus icon
+        console.log("No icon selected, sending empty string to remove icon");
       }
 
       if (editApp.file) {
         formData.append("file", editApp.file);
       }
 
-      // Gunakan XMLHttpRequest untuk track progress
-      const xhr = new XMLHttpRequest();
+      // Log formData untuk debugging
+      console.log("FormData entries:");
+      for (let pair of formData.entries()) {
+        console.log(pair[0] + ": " + pair[1]);
+      }
 
-      const response = await new Promise((resolve, reject) => {
-        xhr.upload.addEventListener("progress", (event) => {
-          if (event.lengthComputable) {
-            const percentComplete = (event.loaded / event.total) * 100;
-            setUploadProgress(Math.round(percentComplete));
-          }
-        });
+      // Gunakan fetch dengan FormData
+      const response = await fetch(
+        `${API_BASE_URL}/applications/${editApp.id}`,
+        {
+          method: "PUT",
+          body: formData,
+        }
+      );
 
-        xhr.addEventListener("load", () => {
-          if (xhr.status === 200) {
-            resolve(JSON.parse(xhr.responseText));
-          } else {
-            reject(
-              new Error(
-                xhr.responseText
-                  ? JSON.parse(xhr.responseText).message
-                  : "Upload failed"
-              )
-            );
-          }
-        });
+      console.log("Response status:", response.status);
 
-        xhr.addEventListener("error", () => {
-          reject(new Error("Upload failed"));
-        });
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error response:", errorText);
+        let errorMessage = "Upload failed";
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.message || errorMessage;
+        } catch (e) {
+          errorMessage = errorText;
+        }
+        throw new Error(errorMessage);
+      }
 
-        xhr.open("PUT", `${API_BASE_URL}/applications/${editApp.id}`);
-        xhr.send(formData);
-      });
-
-      const result = response;
+      const result = await response.json();
+      console.log("Update result:", result);
 
       if (result.status === "success") {
         setShowEditModal(false);
         setUploadProgress(0);
-        await fetchApplications();
+
+        // PERBAIKAN: Refresh data setelah update
+        await Promise.all([fetchApplications(), fetchIcons()]);
 
         Swal.fire({
           title: "Success!",
@@ -737,7 +1019,7 @@ export default function AdminApplicationsManagement() {
       console.error("Error updating application:", error);
       Swal.fire({
         title: "Error",
-        text: "Failed to update application",
+        text: `Failed to update application: ${error.message}`,
         icon: "error",
         confirmButtonColor: "#3b82f6",
         background: "#1f2937",
@@ -749,7 +1031,6 @@ export default function AdminApplicationsManagement() {
       setUploadProgress(0);
     }
   };
-
   // Handle Delete Application
   const handleDeleteApp = async (app) => {
     const result = await Swal.fire({
@@ -1269,6 +1550,17 @@ export default function AdminApplicationsManagement() {
                         {currentData.map((app) => {
                           const appIcon = getAppIcon(app);
 
+                          // Debug log untuk setiap row
+                          console.log(`📋 Table Row - App ${app.id}:`, {
+                            title: app.title,
+                            icon_id: app.icon_id,
+                            icon_from_app: app.icon,
+                            icon_from_getAppIcon: appIcon,
+                            has_relation: !!app.icon,
+                            icon_key: app.icon?.icon_key,
+                            icon_type: app.icon?.type,
+                          });
+
                           return (
                             <tr
                               key={app.id}
@@ -1277,22 +1569,23 @@ export default function AdminApplicationsManagement() {
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-3">
                                   <div className="p-2 bg-blue-900/50 rounded-lg">
-                                    {appIcon ? (
-                                      <AppIcon app={app} className="w-6 h-6 text-blue-400" />
-                                    ) : (
-                                      <div className="w-6 h-6 bg-blue-500 rounded flex items-center justify-center">
-                                        <span className="text-white text-xs font-bold">
-                                          A
-                                        </span>
-                                      </div>
-                                    )}
+                                    {/* PERBAIKAN: Gunakan AppIcon langsung dengan app object */}
+                                    <AppIcon
+                                      app={app}
+                                      className="w-6 h-6 text-blue-400"
+                                    />
                                   </div>
                                   <div>
                                     <div className="font-medium text-white">
                                       {app.title}
                                     </div>
-                                    <div className="text-sm text-gray-400">
-                                      ID: {app.id}
+                                    <div className="text-xs text-gray-400">
+                                      ID: {app.id} | Icon:{" "}
+                                      {app.icon_id
+                                        ? `ID:${app.icon_id}`
+                                        : "None"}
+                                      {app.icon?.icon_key &&
+                                        ` (${app.icon.icon_key})`}
                                     </div>
                                   </div>
                                 </div>
@@ -1588,6 +1881,7 @@ export default function AdminApplicationsManagement() {
                       (icon) => icon.id === parseInt(newApp.iconId)
                     )}
                     onSelectIcon={(icon) => {
+                      console.log("Icon selected in add modal:", icon);
                       setNewApp({ ...newApp, iconId: icon.id.toString() });
                     }}
                     isOpen={showIconDropdown}
@@ -1597,6 +1891,7 @@ export default function AdminApplicationsManagement() {
                     }}
                     searchQuery={iconSearch}
                     onSearchChange={setIconSearch}
+                    currentIconId={newApp.iconId} // Tambah prop ini
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     Choose from icon library or upload your own icon
@@ -1825,6 +2120,7 @@ export default function AdminApplicationsManagement() {
                       (icon) => icon.id === parseInt(editApp.iconId)
                     )}
                     onSelectIcon={(icon) => {
+                      console.log("Icon selected in edit modal:", icon);
                       setEditApp({ ...editApp, iconId: icon.id.toString() });
                     }}
                     isOpen={showEditIconDropdown}
@@ -1835,6 +2131,7 @@ export default function AdminApplicationsManagement() {
                     searchQuery={editIconSearch}
                     onSearchChange={setEditIconSearch}
                     isEdit={true}
+                    currentIconId={editApp.iconId} // Tambah prop ini
                   />
                   <p className="text-xs text-gray-400 mt-1">
                     Choose from icon library or upload your own icon

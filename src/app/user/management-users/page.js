@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { Poppins } from "next/font/google";
 import Swal from "sweetalert2";
-import LayoutDashboard from "../components/Layout/LayoutDashboard";
+import LayoutDashboard from "../componentsUser/Layout/LayoutDashboard";
 import Image from "next/image";
 
 const poppins = Poppins({

@@ -63,31 +63,31 @@ export default function LoginPage() {
         throw new Error(result.message || `HTTP error! status: ${response.status}`);
       }
 
-      if (result.status === "success") {
-        // Simpan user data ke localStorage
-        localStorage.setItem("user", JSON.stringify(result.data.user));
-        
-        // Show success message
-        Swal.fire({
-          title: "Success!",
-          text: "Login successful!",
-          icon: "success",
-          confirmButtonColor: "#1e40af",
-          background: '#1f2937',
-          color: '#f9fafb'
-        });
+    // Di bagian handleSubmit login page, ganti:
+if (result.status === "success") {
+  // Simpan user data ke localStorage
+  localStorage.setItem("user", JSON.stringify(result.data.user));
+  
+  // Show success message
+  Swal.fire({
+    title: "Success!",
+    text: "Login successful!",
+    icon: "success",
+    confirmButtonColor: "#1e40af",
+    background: '#1f2937',
+    color: '#f9fafb'
+  });
 
-        // Redirect ke dashboard berdasarkan role
-        setTimeout(() => {
-          const userRole = result.data.user.role;
-          if (userRole === 'superadmin' || userRole === 'admin') {
-            router.push("/dashboard");
-          } else {
-            router.push("/user/dashboard");
-          }
-        }, 1000);
-
-      } else {
+  // Redirect ke dashboard berdasarkan role
+  setTimeout(() => {
+    const userRole = result.data.user.role;
+    if (userRole === 'superadmin' || userRole === 'admin') {
+      router.push("/admin/dashboard");
+    } else {
+      router.push("/user/dashboard");
+    }
+  }, 1000);
+}else {
         throw new Error(result.message || "Login failed");
       }
 

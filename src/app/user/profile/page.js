@@ -13,7 +13,7 @@ import {
   AlertTriangle,
   CheckCircle,
 } from "lucide-react";
-import LayoutDashboard from "../components/Layout/LayoutDashboard";
+import LayoutDashboard from "../componentsUser/Layout/LayoutDashboard";
 import Swal from "sweetalert2";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
