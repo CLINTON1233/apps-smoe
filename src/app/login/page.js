@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Poppins } from "next/font/google";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import Swal from "sweetalert2";
+import { useAuth } from "../context/AuthContext";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -17,12 +18,39 @@ const API_BASE_URL = "http://localhost:5000";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login, user } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
   const [loading, setLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  // Check jika user sudah login
+  useEffect(() => {
+    const checkAuth = () => {
+      const storedUser = localStorage.getItem("user");
+      
+      if (storedUser) {
+        try {
+          const userData = JSON.parse(storedUser);
+          // PERBAIKI: Tambahkan pengecekan untuk guest
+          if (userData.role === "admin" || userData.role === "superadmin") {
+            router.push("/admin/dashboard");
+          } else if (userData.role === "user" || userData.role === "guest") {
+            router.push("/user/dashboard");
+          }
+        } catch (error) {
+          setCheckingAuth(false);
+        }
+      } else {
+        setCheckingAuth(false);
+      }
+    };
+
+    checkAuth();
+  }, [router]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -31,21 +59,19 @@ export default function LoginPage() {
     try {
       console.log("Login attempt:", formData);
 
-      // Validasi input
       if (!formData.email || !formData.password) {
         Swal.fire({
           title: "Error",
           text: "Please fill in all fields",
           icon: "error",
           confirmButtonColor: "#1e40af",
-          background: '#1f2937',
-          color: '#f9fafb'
+          background: "#1f2937",
+          color: "#f9fafb",
         });
         setLoading(false);
         return;
       }
 
-      // Kirim request ke backend
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
         headers: {
@@ -60,37 +86,32 @@ export default function LoginPage() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.message || `HTTP error! status: ${response.status}`);
+        throw new Error(
+          result.message || `HTTP error! status: ${response.status}`
+        );
       }
 
-    // Di bagian handleSubmit login page, ganti:
-if (result.status === "success") {
-  // Simpan user data ke localStorage
-  localStorage.setItem("user", JSON.stringify(result.data.user));
-  
-  // Show success message
-  Swal.fire({
-    title: "Success!",
-    text: "Login successful!",
-    icon: "success",
-    confirmButtonColor: "#1e40af",
-    background: '#1f2937',
-    color: '#f9fafb'
-  });
+      if (result.status === "success") {
+        const userData = result.data.user;
+        localStorage.setItem("user", JSON.stringify(userData));
 
-  // Redirect ke dashboard berdasarkan role
-  setTimeout(() => {
-    const userRole = result.data.user.role;
-    if (userRole === 'superadmin' || userRole === 'admin') {
-      router.push("/admin/dashboard");
-    } else {
-      router.push("/user/dashboard");
-    }
-  }, 1000);
-}else {
+        // Use context login function
+        login(userData);
+        
+        Swal.fire({
+          title: "Success!",
+          text: "Login successful!",
+          icon: "success",
+          confirmButtonColor: "#1e40af",
+          background: "#1f2937",
+          color: "#f9fafb",
+        });
+
+        // PERBAIKI: Tidak perlu setTimeout karena AuthContext sudah handle redirect
+        // Biarkan AuthContext yang handle redirect
+      } else {
         throw new Error(result.message || "Login failed");
       }
-
     } catch (error) {
       console.error("Login error:", error);
       Swal.fire({
@@ -98,8 +119,8 @@ if (result.status === "success") {
         text: error.message || "Invalid email or password",
         icon: "error",
         confirmButtonColor: "#1e40af",
-        background: '#1f2937',
-        color: '#f9fafb'
+        background: "#1f2937",
+        color: "#f9fafb",
       });
     } finally {
       setLoading(false);
@@ -113,6 +134,17 @@ if (result.status === "success") {
     });
   };
 
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-500"></div>
+          <span className="mt-4 text-sm text-gray-300">Checking authentication...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`relative min-h-screen flex flex-col ${poppins.className}`}>
       {/* 🌑 DARK BACKGROUND */}
@@ -122,21 +154,15 @@ if (result.status === "success") {
 
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 border-b border-gray-700 text-white">
-             <Link href="/dashboard" className="flex items-center gap-2 sm:gap-3">
-         
+        <Link href="/dashboard" className="flex items-center gap-2 sm:gap-3">
           <Image
-            src="/seatrium_logo_white.png" 
+            src="/seatrium_logo_white.png"
             alt="Seatrium Logo"
             width={180}
             height={180}
-            className="object-contain w-28 sm:w-32 brightness-110" 
+            className="object-contain w-28 sm:w-32 brightness-110"
           />
         </Link>
-        {/* <Link href="/dashboard" className="flex items-center gap-2 sm:gap-3">
-          <div className="text-1xl sm:text-1xl font-semibold tracking-wide text-blue-400">
-            Seatrium<span className="text-white">Apps</span>
-          </div>
-        </Link> */}
       </header>
 
       {/* Main Content */}
@@ -144,8 +170,12 @@ if (result.status === "success") {
         <div className="max-w-md w-full">
           {/* Welcome Section */}
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-white mb-0">Welcome Back!</h1>
-            <p className="text-gray-400 text-lg">Log in to access your account</p>
+            <h1 className="text-4xl font-bold text-white mb-0">
+              Welcome Back!
+            </h1>
+            <p className="text-gray-400 text-lg">
+              Log in to access your account
+            </p>
           </div>
 
           {/* Login Form */}
@@ -161,7 +191,10 @@ if (result.status === "success") {
 
             {/* Email Field */}
             <div className="mb-6">
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-3">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-300 mb-3"
+              >
                 Email address
               </label>
               <div className="relative">
@@ -185,7 +218,10 @@ if (result.status === "success") {
             {/* Password Field */}
             <div className="mb-6">
               <div className="flex justify-between items-center mb-3">
-                <label htmlFor="password" className="text-sm font-medium text-gray-300">
+                <label
+                  htmlFor="password"
+                  className="text-sm font-medium text-gray-300"
+                >
                   Password
                 </label>
                 <button
@@ -252,8 +288,6 @@ if (result.status === "success") {
                 "Log in"
               )}
             </button>
-
-         
           </form>
         </div>
       </div>
@@ -263,7 +297,11 @@ if (result.status === "success") {
         <div className="max-w-6xl mx-auto px-4">
           <p>IT Applications Dashboard</p>
           <p className="mt-1">
-            <Link href="https://seatrium.com" target="_blank" className="text-blue-400 hover:text-blue-300 transition">
+            <Link
+              href="https://seatrium.com"
+              target="_blank"
+              className="text-blue-400 hover:text-blue-300 transition"
+            >
               seatrium.com
             </Link>
           </p>

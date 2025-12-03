@@ -16,6 +16,7 @@ import {
 import LayoutDashboard from "../componentsAdmin/Layout/LayoutDashboard";
 import Swal from "sweetalert2";
 import Image from "next/image";
+import ProtectedRoute from "../../components/ProtectedRoute";
 
 const API_BASE_URL = "http://localhost:5000";
 
@@ -472,6 +473,7 @@ export default function AdminCategoriesManagement() {
   );
 
   return (
+    <ProtectedRoute allowedRoles={["admin", "superadmin"]}>
     <LayoutDashboard>
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8 bg-gray-900 min-h-screen relative">
         {/* Background Logo Transparan */}
@@ -920,5 +922,6 @@ export default function AdminCategoriesManagement() {
         </div>
       </footer>
     </LayoutDashboard>
+    </ProtectedRoute>
   );
 }

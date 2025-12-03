@@ -20,6 +20,7 @@ import LayoutDashboard from "../componentsAdmin/Layout/LayoutDashboard";
 import Swal from "sweetalert2";
 import Image from "next/image";
 import * as LucideIcons from "lucide-react";
+import ProtectedRoute from "../../components/ProtectedRoute";
 
 const API_BASE_URL = "http://localhost:5000";
 
@@ -1417,6 +1418,7 @@ const getAppIcon = (app) => {
   };
 
   return (
+     <ProtectedRoute allowedRoles={["admin", "superadmin"]}>
     <LayoutDashboard>
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8 bg-gray-900 min-h-screen relative">
         {/* Background Logo Transparan */}
@@ -2280,5 +2282,6 @@ const getAppIcon = (app) => {
         </div>
       </footer>
     </LayoutDashboard>
+    </ProtectedRoute>
   );
 }

@@ -12,7 +12,8 @@ import {
 import LayoutDashboard from "../componentsUser/Layout/LayoutDashboard";
 import Swal from "sweetalert2";
 import Image from "next/image";
-import * as LucideIcons from "lucide-react"; // IMPORT LUCIDE ICONS
+import * as LucideIcons from "lucide-react"; 
+import ProtectedRoute from "../../components/ProtectedRoute";
 
 const API_BASE_URL = "http://localhost:5000";
 
@@ -483,6 +484,7 @@ export default function AdminDashboard() {
   });
 
   return (
+     <ProtectedRoute allowedRoles={["guest", "user"]}> 
     <LayoutDashboard>
       <div className="max-w-7xl mx-auto px-4 py-8 relative min-h-screen">
         {/* Background Logo Transparan */}
@@ -674,5 +676,6 @@ export default function AdminDashboard() {
         </div>
       </footer>
     </LayoutDashboard>
+    </ProtectedRoute>
   );
 }

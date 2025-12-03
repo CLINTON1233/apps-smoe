@@ -626,6 +626,7 @@ export default function AdminManagementUsers() {
   };
 
   return (
+  <ProtectedRoute allowedRoles={["guest", "user"]}> 
     <LayoutDashboard>
       {/* Main Content - DARK MODE */}
       <div className="min-h-screen bg-gray-900 text-gray-100 relative">
@@ -1228,5 +1229,6 @@ export default function AdminManagementUsers() {
         </div>
       </footer>
     </LayoutDashboard>
+    </ProtectedRoute>
   );
 }

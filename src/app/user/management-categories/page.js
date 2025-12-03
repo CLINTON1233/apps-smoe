@@ -472,6 +472,7 @@ export default function AdminCategoriesManagement() {
   );
 
   return (
+  <ProtectedRoute allowedRoles={["guest", "user"]}> 
     <LayoutDashboard>
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8 bg-gray-900 min-h-screen relative">
         {/* Background Logo Transparan */}
@@ -920,5 +921,6 @@ export default function AdminCategoriesManagement() {
         </div>
       </footer>
     </LayoutDashboard>
+    </ProtectedRoute>
   );
 }

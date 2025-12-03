@@ -1,19 +1,9 @@
-import { Geist, Geist_Mono } from "next/font/google";
+import { AuthProvider } from "./context/AuthContext";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata = {
-  title: "Apps Seatrium",
-  description: "Apps Seatrium Portal",
+  title: "Seatrium Apps Portal",
+  description: "Seatrium Applications Dashboard",
 };
 
 export default function RootLayout({ children }) {
@@ -23,10 +13,8 @@ export default function RootLayout({ children }) {
         <link rel="icon" href="/favicon.ico" />
         <link rel="shortcut icon" href="/favicon.ico" />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+      <body>
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

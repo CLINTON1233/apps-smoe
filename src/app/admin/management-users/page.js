@@ -18,7 +18,7 @@ import { Poppins } from "next/font/google";
 import Swal from "sweetalert2";
 import LayoutDashboard from "../componentsAdmin/Layout/LayoutDashboard";
 import Image from "next/image";
-
+import ProtectedRoute from "../../components/ProtectedRoute";
 const poppins = Poppins({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
@@ -626,6 +626,7 @@ export default function AdminManagementUsers() {
   };
 
   return (
+    <ProtectedRoute allowedRoles={["admin", "superadmin"]}>
     <LayoutDashboard>
       {/* Main Content - DARK MODE */}
       <div className="min-h-screen bg-gray-900 text-gray-100 relative">
@@ -1228,5 +1229,6 @@ export default function AdminManagementUsers() {
         </div>
       </footer>
     </LayoutDashboard>
+    </ProtectedRoute>
   );
 }

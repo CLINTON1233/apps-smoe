@@ -18,6 +18,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Poppins } from "next/font/google";
 import Swal from "sweetalert2";
+import { useAuth } from "../../../context/AuthContext"
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -28,6 +29,7 @@ export default function LayoutDashboard({ children }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [userData, setUserData] = useState(null);
+    const { user, logout } = useAuth(); // Get user and logout from context
   const pathname = usePathname();
 
   // Close dropdown ketika klik di luar
@@ -72,42 +74,35 @@ export default function LayoutDashboard({ children }) {
     cancelButtonColor: "#ef4444",
   };
 
-  const handleLogout = () => {
+   const handleLogout = () => {
     Swal.fire({
-      title: "Konfirmasi Logout",
-      text: "Anda yakin ingin keluar dari akun Anda?",
+      title: "Confirm Logout",
+      text: "Are you sure you want to logout?",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Ya, Keluar!",
-      cancelButtonText: "Batal",
+      confirmButtonText: "Yes, Logout!",
+      cancelButtonText: "Cancel",
       reverseButtons: true,
-      ...swalDarkConfig,
-    }).then((result) => {
-     if (result.isConfirmed) {
-  if (typeof window !== "undefined") {
-    localStorage.removeItem("user");
-    
-    // Konfigurasi khusus untuk sukses (icon hijau)
-    const swalSuccessConfig = {
       background: "#1f2937",
       color: "#f3f4f6",
-      iconColor: "#10b981",
+      iconColor: "#3b82f6",
       confirmButtonColor: "#4CAF50",
       cancelButtonColor: "#ef4444",
-    };
-    
-    Swal.fire({
-      title: "Berhasil Keluar!",
-      text: "Anda telah berhasil keluar.",
-      icon: "success",
-      timer: 1500,
-      showConfirmButton: false,
-      ...swalSuccessConfig, // Gunakan konfigurasi sukses
-    }).then(() => {
-      window.location.href = "/login";
-    });
-  }
-}
+    }).then((result) => {
+      if (result.isConfirmed) {
+        logout(); // Use logout from context
+        
+        Swal.fire({
+          title: "Logged Out!",
+          text: "You have been successfully logged out.",
+          icon: "success",
+          timer: 1500,
+          showConfirmButton: false,
+          background: "#1f2937",
+          color: "#f3f4f6",
+          iconColor: "#10b981",
+        });
+      }
     });
   };
 
@@ -148,9 +143,9 @@ export default function LayoutDashboard({ children }) {
   // Format role untuk display
   const formatRole = (role) => {
     const roleMap = {
-      admin: "Administrator",
-      superadmin: "Super Administrator",
-      guest: "Guest User",
+      admin: "Admin",
+      superadmin: "Superadmin",
+      guest: "Guest",
       user: "Regular User",
     };
     return roleMap[role] || role;
