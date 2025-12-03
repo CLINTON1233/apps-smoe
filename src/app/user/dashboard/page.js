@@ -12,10 +12,11 @@ import {
 import LayoutDashboard from "../componentsUser/Layout/LayoutDashboard";
 import Swal from "sweetalert2";
 import Image from "next/image";
-import * as LucideIcons from "lucide-react"; 
+import * as LucideIcons from "lucide-react";
 import ProtectedRoute from "../../components/ProtectedRoute";
 
-const API_BASE_URL = "http://localhost:5000";
+// IMPORT API CONFIGURATION
+import { API_ENDPOINTS, getIconUrl } from "../../../config/api";
 
 export default function AdminDashboard() {
   const [activeCategory, setActiveCategory] = useState("All");
@@ -38,7 +39,7 @@ export default function AdminDashboard() {
   // ============================================================
   // AMBIL LOGIC AppIcon DARI MANAGEMENT APPSTORE
   // ============================================================
-  
+
   // AppIcon Component untuk menampilkan icon
   const AppIcon = ({ app, className = "w-14 h-14" }) => {
     const icon = app.icon || app.iconObject;
@@ -67,9 +68,10 @@ export default function AdminDashboard() {
       // Cek jika ini custom icon (file)
       if (icon.type === "custom" && icon.file_path) {
         console.log("🖼️ Rendering custom icon (Dashboard):", icon.file_path);
+        const customIconUrl = getIconUrl(icon.file_path);
         return (
           <img
-            src={`${API_BASE_URL}/${icon.file_path}`}
+            src={customIconUrl}
             alt={icon.name}
             className={`${className} object-contain rounded-xl`}
             style={{
@@ -80,13 +82,15 @@ export default function AdminDashboard() {
               padding: "4px",
             }}
             onError={(e) => {
-              console.error("❌ Failed to load custom icon:", icon.file_path);
+              console.error("❌ Failed to load custom icon:", customIconUrl);
               // Fallback ke default icon
               e.target.style.display = "none";
               // Show fallback
               const fallback = document.createElement("div");
               fallback.className = `${className} bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl flex items-center justify-center text-white font-extrabold text-xl shadow-lg`;
-              fallback.innerHTML = `<span>${app.title?.charAt(0)?.toUpperCase() || "A"}</span>`;
+              fallback.innerHTML = `<span>${
+                app.title?.charAt(0)?.toUpperCase() || "A"
+              }</span>`;
               e.target.parentNode.appendChild(fallback);
             }}
           />
@@ -213,14 +217,16 @@ export default function AdminDashboard() {
     }
 
     // Ultimate fallback - icon huruf pertama dengan background gradient
-    console.log("⚠️ Ultimate fallback - showing default letter icon (Dashboard)");
+    console.log(
+      "⚠️ Ultimate fallback - showing default letter icon (Dashboard)"
+    );
     const colorMaps = [
       "bg-gradient-to-br from-gray-800 to-gray-900",
       "bg-gradient-to-br from-gray-700 to-gray-800",
       "bg-gradient-to-br from-gray-600 to-gray-700",
     ];
     const defaultColor = colorMaps[app.id % colorMaps.length];
-    
+
     return (
       <div
         className={`${className} ${defaultColor} rounded-xl flex items-center justify-center text-white font-extrabold text-xl shadow-lg`}
@@ -236,7 +242,7 @@ export default function AdminDashboard() {
     if (app.icon && typeof app.icon === "object") {
       return app.icon;
     }
-    
+
     // Jika tidak ada relation, cari di icons list
     if (app.icon_id) {
       const foundIcon = icons.find((icon) => icon.id === app.icon_id);
@@ -244,7 +250,7 @@ export default function AdminDashboard() {
         return foundIcon;
       }
     }
-    
+
     return null;
   };
 
@@ -265,7 +271,7 @@ export default function AdminDashboard() {
     setIsLoading(true);
     try {
       console.log("=== FETCHING APPLICATIONS (Dashboard) ===");
-      const response = await fetch(`${API_BASE_URL}/applications`);
+      const response = await fetch(API_ENDPOINTS.APPLICATIONS);
 
       if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
 
@@ -309,7 +315,7 @@ export default function AdminDashboard() {
   // Fetch categories
   const fetchCategories = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/categories`);
+      const response = await fetch(API_ENDPOINTS.CATEGORIES);
       if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
 
       const result = await response.json();
@@ -324,8 +330,8 @@ export default function AdminDashboard() {
   // Fetch icons (untuk backup jika icon tidak ada di relation)
   const fetchIcons = async () => {
     try {
-      console.log("Fetching icons from (Dashboard):", `${API_BASE_URL}/icons`);
-      const response = await fetch(`${API_BASE_URL}/icons`);
+      console.log("Fetching icons from (Dashboard):", API_ENDPOINTS.ICONS);
+      const response = await fetch(API_ENDPOINTS.ICONS);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -336,7 +342,10 @@ export default function AdminDashboard() {
 
       if (result.status === "success") {
         setIcons(result.data || []);
-        console.log("Total icons loaded (Dashboard):", result.data?.length || 0);
+        console.log(
+          "Total icons loaded (Dashboard):",
+          result.data?.length || 0
+        );
 
         // Debug: Periksa beberapa icon
         if (result.data && Array.isArray(result.data)) {
@@ -381,15 +390,12 @@ export default function AdminDashboard() {
 
       console.log("Starting download for app:", app);
 
-      const response = await fetch(
-        `${API_BASE_URL}/applications/${app.id}/download`,
-        {
-          method: "GET",
-          headers: {
-            Accept: "application/octet-stream",
-          },
-        }
-      );
+      const response = await fetch(API_ENDPOINTS.APPLICATION_DOWNLOAD(app.id), {
+        method: "GET",
+        headers: {
+          Accept: "application/octet-stream",
+        },
+      });
 
       console.log("Download response status:", response.status);
 
@@ -484,198 +490,205 @@ export default function AdminDashboard() {
   });
 
   return (
-     <ProtectedRoute allowedRoles={["guest", "user"]}> 
-    <LayoutDashboard>
-      <div className="max-w-7xl mx-auto px-4 py-8 relative min-h-screen">
-        {/* Background Logo Transparan */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="relative w-full h-full">
-            <Image
-              src="/seatrium_logo_white.png"
-              alt="Seatrium Background Logo"
-              fill
-              className="object-contain opacity-3 scale-75"
-              priority
-            />
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="relative z-10">
-          {/* HEADER */}
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-white">
-              Seatrium Applications Dashboard
-            </h1>
-            <p className="text-gray-400 mt-1 text-base">
-              Manage and review all your application data here.
-            </p>
-          </div>
-
-          {/* SEARCH BAR */}
-          <div className="mb-6 bg-gray-800 p-4 rounded-xl border border-gray-700">
-            <div className="relative">
-              <Search
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-                size={18}
-              />
-              <input
-                type="text"
-                placeholder="Search apps by name or category..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-11 pr-4 py-2.5 bg-gray-700 text-white placeholder-gray-400 rounded-full border border-gray-600 focus:ring-2 focus:ring-blue-500 text-sm"
+    <ProtectedRoute allowedRoles={["guest", "user"]}>
+      <LayoutDashboard>
+        <div className="max-w-7xl mx-auto px-4 py-8 relative min-h-screen">
+          {/* Background Logo Transparan */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="relative w-full h-full">
+              <Image
+                src="/seatrium_logo_white.png"
+                alt="Seatrium Background Logo"
+                fill
+                className="object-contain opacity-3 scale-75"
+                priority
               />
             </div>
           </div>
 
-          {/* CATEGORY FILTER */}
-          <div className="mb-8">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              {/* Label */}
-              <div className="flex items-center gap-2 text-gray-300 text-sm">
-                <Filter size={18} className="text-blue-400" />
-                <span className="font-semibold">Filter Category:</span>
-              </div>
+          {/* Content */}
+          <div className="relative z-10">
+            {/* HEADER */}
+            <div className="mb-8">
+              <h1 className="text-2xl font-bold text-white">
+                Seatrium Applications Dashboard
+              </h1>
+              <p className="text-gray-400 mt-1 text-base">
+                Manage and review all your application data here.
+              </p>
+            </div>
 
-              {/* Category Buttons */}
-              <div className="flex flex-wrap gap-2">
-                {appCategories.map((category) => (
-                  <button
-                    key={category}
-                    onClick={() => setActiveCategory(category)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                      activeCategory === category
-                        ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25"
-                        : "bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white"
-                    }`}
-                  >
-                    {category}
-                  </button>
-                ))}
+            {/* SEARCH BAR */}
+            <div className="mb-6 bg-gray-800 p-4 rounded-xl border border-gray-700">
+              <div className="relative">
+                <Search
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                  size={18}
+                />
+                <input
+                  type="text"
+                  placeholder="Search apps by name or category..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-11 pr-4 py-2.5 bg-gray-700 text-white placeholder-gray-400 rounded-full border border-gray-600 focus:ring-2 focus:ring-blue-500 text-sm"
+                />
               </div>
             </div>
-          </div>
 
-          {/* LOADING */}
-          {isLoading ? (
-            <div className="flex flex-col justify-center items-center py-20 bg-gray-800 rounded-xl">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-500"></div>
-              <span className="mt-4 text-sm text-gray-300">
-                Loading applications...
-              </span>
-            </div>
-          ) : (
-            <>
-              {/* APPS GRID */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredApps.map((app) => {
-                  const appIconData = getAppIconData(app);
-                  
-                  return (
-                    <div
-                      key={app.id}
-                      className="bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-lg hover:shadow-xl hover:border-gray-600 transition-all duration-300"
+            {/* CATEGORY FILTER */}
+            <div className="mb-8">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                {/* Label */}
+                <div className="flex items-center gap-2 text-gray-300 text-sm">
+                  <Filter size={18} className="text-blue-400" />
+                  <span className="font-semibold">Filter Category:</span>
+                </div>
+
+                {/* Category Buttons */}
+                <div className="flex flex-wrap gap-2">
+                  {appCategories.map((category) => (
+                    <button
+                      key={category}
+                      onClick={() => setActiveCategory(category)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                        activeCategory === category
+                          ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25"
+                          : "bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white"
+                      }`}
                     >
-                      <div className="flex flex-col items-center mb-4">
-                        {/* GUNAKAN AppIcon COMPONENT */}
-                        <AppIcon app={app} className="w-14 h-14" />
-                        
-                        <h3 className="text-base font-bold text-white mt-3 text-center">
-                          {app.title}
-                        </h3>
-                      </div>
+                      {category}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
 
-                      <p className="text-sm text-gray-300 text-center mb-4 h-10">
-                        {app.description || "No description available"}
-                      </p>
+            {/* LOADING */}
+            {isLoading ? (
+              <div className="flex flex-col justify-center items-center py-20 bg-gray-800 rounded-xl">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-500"></div>
+                <span className="mt-4 text-sm text-gray-300">
+                  Loading applications...
+                </span>
+              </div>
+            ) : (
+              <>
+                {/* APPS GRID */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {filteredApps.map((app) => {
+                    const appIconData = getAppIconData(app);
 
-                      <div className="flex flex-wrap justify-center gap-3 mb-4 pt-3 border-t border-gray-700">
-                        {/* VERSION BADGE - NO BACKGROUND */}
-                        <span className="flex items-center text-sm text-white">
-                          <Hash size={13} className="mr-2 text-gray-400" />
-                          Version: {app.version || "N/A"}
-                        </span>
-                        
-                        {/* FILE SIZE BADGE - NO BACKGROUND */}
-                        <span className="flex items-center text-sm text-white">
-                          <Download size={13} className="mr-2 text-gray-400" />
-                          Size: {formatFileSize(app.file_size)}
-                        </span>
-                        
-                        {/* CATEGORY BADGE - NO BACKGROUND */}
-                        <span className="text-sm text-white">
-                          {app.category?.name || "Uncategorized"}
-                        </span>
-                      </div>
+                    return (
+                      <div
+                        key={app.id}
+                        className="bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-lg hover:shadow-xl hover:border-gray-600 transition-all duration-300"
+                      >
+                        <div className="flex flex-col items-center mb-4">
+                          {/* GUNAKAN AppIcon COMPONENT */}
+                          <AppIcon app={app} className="w-14 h-14" />
 
-                      <div className="flex justify-between text-sm border-t border-gray-700 pt-4">
-                        <span className="flex items-center text-white">
-                          <BarChart2 size={14} className="mr-2 text-gray-400" />
-                          Downloads: {app.download_count || 0}
-                        </span>
-                        <span
-                          className={`px-3 py-1 rounded-lg text-sm font-semibold uppercase ${
-                            app.status === "active"
-                              ? "text-green-400"
-                              : "text-red-400"
+                          <h3 className="text-base font-bold text-white mt-3 text-center">
+                            {app.title}
+                          </h3>
+                        </div>
+
+                        <p className="text-sm text-gray-300 text-center mb-4 h-10">
+                          {app.description || "No description available"}
+                        </p>
+
+                        <div className="flex flex-wrap justify-center gap-3 mb-4 pt-3 border-t border-gray-700">
+                          {/* VERSION BADGE - NO BACKGROUND */}
+                          <span className="flex items-center text-sm text-white">
+                            <Hash size={13} className="mr-2 text-gray-400" />
+                            Version: {app.version || "N/A"}
+                          </span>
+
+                          {/* FILE SIZE BADGE - NO BACKGROUND */}
+                          <span className="flex items-center text-sm text-white">
+                            <Download
+                              size={13}
+                              className="mr-2 text-gray-400"
+                            />
+                            Size: {formatFileSize(app.file_size)}
+                          </span>
+
+                          {/* CATEGORY BADGE - NO BACKGROUND */}
+                          <span className="text-sm text-white">
+                            {app.category?.name || "Uncategorized"}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between text-sm border-t border-gray-700 pt-4">
+                          <span className="flex items-center text-white">
+                            <BarChart2
+                              size={14}
+                              className="mr-2 text-gray-400"
+                            />
+                            Downloads: {app.download_count || 0}
+                          </span>
+                          <span
+                            className={`px-3 py-1 rounded-lg text-sm font-semibold uppercase ${
+                              app.status === "active"
+                                ? "text-green-400"
+                                : "text-red-400"
+                            }`}
+                          >
+                            {app.status || "Active"}
+                          </span>
+                        </div>
+
+                        {/* DOWNLOAD BUTTON - MENGGUNAKAN FUNGSI YANG BARU */}
+                        <button
+                          onClick={() => handleDownload(app)}
+                          disabled={!app.file_name}
+                          className={`w-full flex items-center justify-center gap-2 px-4 py-3 text-white rounded-xl mt-4 text-sm font-semibold transition-all ${
+                            app.file_name
+                              ? "bg-blue-600 hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/25"
+                              : "bg-gray-700 cursor-not-allowed text-gray-400 border border-gray-600"
                           }`}
                         >
-                          {app.status || "Active"}
-                        </span>
+                          <Download size={16} />
+                          {app.file_name
+                            ? "Download Application"
+                            : "File Not Available"}
+                        </button>
                       </div>
-
-                      {/* DOWNLOAD BUTTON - MENGGUNAKAN FUNGSI YANG BARU */}
-                      <button
-                        onClick={() => handleDownload(app)}
-                        disabled={!app.file_name}
-                        className={`w-full flex items-center justify-center gap-2 px-4 py-3 text-white rounded-xl mt-4 text-sm font-semibold transition-all ${
-                          app.file_name
-                            ? "bg-blue-600 hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/25"
-                            : "bg-gray-700 cursor-not-allowed text-gray-400 border border-gray-600"
-                        }`}
-                      >
-                        <Download size={16} />
-                        {app.file_name
-                          ? "Download Application"
-                          : "File Not Available"}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* EMPTY STATE */}
-              {filteredApps.length === 0 && (
-                <div className="text-center py-20 bg-gray-800 rounded-xl border border-gray-700 mt-2">
-                  <FileText className="w-14 h-14 mx-auto mb-4 text-gray-600" />
-                  <p className="text-base font-semibold text-white">
-                    No applications found
-                  </p>
-                  <p className="text-sm mt-2 text-gray-400 max-w-md mx-auto">
-                    {searchQuery || activeCategory !== "All"
-                      ? `No results for "${searchQuery}" in ${activeCategory}. Try different keywords.`
-                      : "Please add new applications in the Applications Management menu."}
-                  </p>
+                    );
+                  })}
                 </div>
-              )}
 
-              {/* FOOTER SUMMARY */}
-              <p className="text-center text-gray-400 mt-10 text-sm">
-                Displaying {filteredApps.length} of {apps.length} applications.
-              </p>
-            </>
-          )}
+                {/* EMPTY STATE */}
+                {filteredApps.length === 0 && (
+                  <div className="text-center py-20 bg-gray-800 rounded-xl border border-gray-700 mt-2">
+                    <FileText className="w-14 h-14 mx-auto mb-4 text-gray-600" />
+                    <p className="text-base font-semibold text-white">
+                      No applications found
+                    </p>
+                    <p className="text-sm mt-2 text-gray-400 max-w-md mx-auto">
+                      {searchQuery || activeCategory !== "All"
+                        ? `No results for "${searchQuery}" in ${activeCategory}. Try different keywords.`
+                        : "Please add new applications in the Applications Management menu."}
+                    </p>
+                  </div>
+                )}
+
+                {/* FOOTER SUMMARY */}
+                <p className="text-center text-gray-400 mt-10 text-sm">
+                  Displaying {filteredApps.length} of {apps.length}{" "}
+                  applications.
+                </p>
+              </>
+            )}
+          </div>
         </div>
-      </div>
-      {/* Footer */}
-      <footer className="mt-12 py-6 text-center text-gray-400 text-sm border-t border-gray-700/50 relative z-10">
-        <div className="max-w-6xl mx-auto px-4">
-          <p>IT Applications Dashboard</p>
-          <p className="mt-1">seatrium.com</p>
-        </div>
-      </footer>
-    </LayoutDashboard>
+        {/* Footer */}
+        <footer className="mt-12 py-6 text-center text-gray-400 text-sm border-t border-gray-700/50 relative z-10">
+          <div className="max-w-6xl mx-auto px-4">
+            <p>IT Applications Dashboard</p>
+            <p className="mt-1">seatrium.com</p>
+          </div>
+        </footer>
+      </LayoutDashboard>
     </ProtectedRoute>
   );
 }

@@ -14,7 +14,8 @@ import Image from "next/image";
 import * as LucideIcons from "lucide-react";
 import Swal from "sweetalert2";
 
-const API_BASE_URL = "http://localhost:5000";
+// IMPORT API CONFIGURATION
+import { API_ENDPOINTS, getIconUrl } from "../../../config/api";
 
 // Dynamic icon component
 const DynamicIcon = ({ iconName, ...props }) => {
@@ -41,9 +42,9 @@ export const IconManagement = ({
   // Fetch icons from API
   const fetchIcons = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/icons`);
+      const response = await fetch(API_ENDPOINTS.ICONS);
       if (!response.ok) throw new Error("Failed to fetch icons");
-      
+
       const result = await response.json();
       if (result.status === "success") {
         setIcons(result.data || []);
@@ -57,6 +58,8 @@ export const IconManagement = ({
         text: "Failed to load icons",
         icon: "error",
         confirmButtonColor: "#3b82f6",
+        background: "#1f2937",
+        color: "#f9fafb",
       });
     }
   };
@@ -66,9 +69,10 @@ export const IconManagement = ({
   }, []);
 
   // Filter icons based on search
-  const filteredIcons = icons.filter(icon =>
-    icon.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    icon.value?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredIcons = icons.filter(
+    (icon) =>
+      icon.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      icon.icon_key?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Handle icon selection
@@ -86,6 +90,8 @@ export const IconManagement = ({
         text: "Please provide both icon name and file",
         icon: "warning",
         confirmButtonColor: "#3b82f6",
+        background: "#1f2937",
+        color: "#f9fafb",
       });
       return;
     }
@@ -96,7 +102,7 @@ export const IconManagement = ({
       formData.append("file", customIconFile);
       formData.append("name", newIconName.trim());
 
-      const response = await fetch(`${API_BASE_URL}/icons/custom`, {
+      const response = await fetch(`${API_ENDPOINTS.ICONS}/custom`, {
         method: "POST",
         body: formData,
       });
@@ -105,7 +111,7 @@ export const IconManagement = ({
 
       if (result.status === "success") {
         const newIcon = result.data;
-        setIcons(prev => [...prev, newIcon]);
+        setIcons((prev) => [...prev, newIcon]);
         setCustomIconFile(null);
         setNewIconName("");
         setShowUploadModal(false);
@@ -115,6 +121,8 @@ export const IconManagement = ({
           text: "Custom icon uploaded successfully",
           icon: "success",
           confirmButtonColor: "#3b82f6",
+          background: "#1f2937",
+          color: "#f9fafb",
         });
 
         if (onUploadIcon) {
@@ -130,6 +138,8 @@ export const IconManagement = ({
         text: "Failed to upload custom icon",
         icon: "error",
         confirmButtonColor: "#3b82f6",
+        background: "#1f2937",
+        color: "#f9fafb",
       });
     } finally {
       setUploading(false);
@@ -147,19 +157,21 @@ export const IconManagement = ({
       cancelButtonColor: "#d33",
       confirmButtonText: "Yes, delete it!",
       cancelButtonText: "Cancel",
+      background: "#1f2937",
+      color: "#f9fafb",
     });
 
     if (result.isConfirmed) {
       try {
-        const response = await fetch(`${API_BASE_URL}/icons/${icon.id}`, {
+        const response = await fetch(`${API_ENDPOINTS.ICONS}/${icon.id}`, {
           method: "DELETE",
         });
 
         const result = await response.json();
 
         if (result.status === "success") {
-          setIcons(prev => prev.filter(i => i.id !== icon.id));
-          
+          setIcons((prev) => prev.filter((i) => i.id !== icon.id));
+
           // If deleted icon was selected, clear selection
           if (selectedIcon?.id === icon.id && onSelectIcon) {
             onSelectIcon(null);
@@ -170,6 +182,8 @@ export const IconManagement = ({
             text: `${icon.name} has been deleted.`,
             icon: "success",
             confirmButtonColor: "#3b82f6",
+            background: "#1f2937",
+            color: "#f9fafb",
           });
         } else {
           throw new Error(result.message);
@@ -180,6 +194,8 @@ export const IconManagement = ({
           text: "Failed to delete icon.",
           icon: "error",
           confirmButtonColor: "#3b82f6",
+          background: "#1f2937",
+          color: "#f9fafb",
         });
       }
     }
@@ -207,7 +223,7 @@ export const IconManagement = ({
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        
+
         {mode === "manage" && (
           <button
             onClick={() => setShowUploadModal(true)}
@@ -234,17 +250,26 @@ export const IconManagement = ({
             {/* Icon Display */}
             <div className="flex items-center justify-center w-8 h-8 mb-2">
               {icon.type === "system" ? (
-                <DynamicIcon iconName={icon.value} className="w-6 h-6" />
+                <DynamicIcon iconName={icon.icon_key} className="w-6 h-6" />
               ) : icon.file_path ? (
-                <Image
-                  src={`/${icon.file_path}`}
+                <img
+                  src={getIconUrl(icon.file_path)}
                   alt={icon.name}
-                  width={24}
-                  height={24}
                   className="w-6 h-6 object-contain"
                   onError={(e) => {
-                    console.error("Failed to load icon image:", icon.file_path);
+                    console.error(
+                      "Failed to load icon image:",
+                      getIconUrl(icon.file_path)
+                    );
                     e.target.style.display = "none";
+                    // Show fallback
+                    const fallback = document.createElement("div");
+                    fallback.className =
+                      "w-6 h-6 flex items-center justify-center bg-gray-800 rounded";
+                    fallback.innerHTML = `<span class="text-xs text-gray-400">${
+                      icon.name?.charAt(0)?.toUpperCase() || "I"
+                    }</span>`;
+                    e.target.parentNode.appendChild(fallback);
                   }}
                 />
               ) : (
@@ -406,9 +431,9 @@ export const useIconManagement = () => {
 
   const fetchIcons = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/icons`);
+      const response = await fetch(API_ENDPOINTS.ICONS);
       if (!response.ok) throw new Error("Failed to fetch icons");
-      
+
       const result = await response.json();
       if (result.status === "success") {
         setIcons(result.data || []);

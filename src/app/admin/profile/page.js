@@ -19,8 +19,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import ProtectedRoute from "../../components/ProtectedRoute";
-
-const API_BASE_URL = "http://localhost:5000";
+import API_BASE_URL, { API_ENDPOINTS } from "../../../config/api";
 
 export default function AdminProfile() {
   const router = useRouter();
@@ -74,7 +73,7 @@ export default function AdminProfile() {
 
       const userId = currentUser.id;
 
-      const response = await fetch(`${API_BASE_URL}/users/${userId}`);
+      const response = await fetch(API_ENDPOINTS.USER_BY_ID(userId));
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -117,7 +116,7 @@ export default function AdminProfile() {
 
       const userId = currentUser.id;
 
-      const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+      const response = await fetch(API_ENDPOINTS.USER_BY_ID(userId), {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

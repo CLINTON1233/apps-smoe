@@ -21,8 +21,7 @@ import Swal from "sweetalert2";
 import Image from "next/image";
 import * as LucideIcons from "lucide-react";
 import ProtectedRoute from "../../components/ProtectedRoute";
-
-const API_BASE_URL = "http://localhost:5000";
+import API_BASE_URL, { API_ENDPOINTS, getIconUrl } from "../../../config/api";
 
 // Dynamic icon component
 const DynamicIcon = ({ iconName, ...props }) => {
@@ -125,7 +124,7 @@ export default function AdminApplicationsManagement() {
         console.log("🖼️ Rendering custom icon:", icon.file_path);
         return (
           <img
-            src={`${API_BASE_URL}/${icon.file_path}`}
+            src={getIconUrl(icon.file_path)}
             alt={icon.name}
             className={className}
             style={{
@@ -295,7 +294,7 @@ export default function AdminApplicationsManagement() {
         if (iconKey.includes("icon-") && iconKey.includes(".")) {
           return (
             <img
-              src={`${API_BASE_URL}/uploads/icons/${iconKey}`}
+              src={getIconUrl(`uploads/icons/${iconKey}`)}
               alt="Custom Icon"
               className={className}
               style={{ width: "100%", height: "100%", objectFit: "contain" }}
@@ -559,7 +558,7 @@ export default function AdminApplicationsManagement() {
     setIsLoading(true);
     try {
       console.log("=== FETCHING APPLICATIONS ===");
-      const response = await fetch(`${API_BASE_URL}/applications`);
+      const response = await fetch(API_ENDPOINTS.APPLICATIONS);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -617,8 +616,8 @@ export default function AdminApplicationsManagement() {
   const fetchIcons = async () => {
     setIsLoadingIcons(true);
     try {
-      console.log("Fetching icons from:", `${API_BASE_URL}/icons`);
-      const response = await fetch(`${API_BASE_URL}/icons`);
+      console.log("Fetching icons from:", API_ENDPOINTS.ICONS);
+      const response = await fetch(API_ENDPOINTS.ICONS);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -664,9 +663,9 @@ export default function AdminApplicationsManagement() {
   // Fetch categories
   const fetchCategories = async () => {
     try {
-      console.log("Fetching categories from:", `${API_BASE_URL}/categories`);
+      console.log("Fetching categories from:", API_ENDPOINTS.CATEGORIES);
 
-      const response = await fetch(`${API_BASE_URL}/categories`);
+      const response = await fetch(API_ENDPOINTS.CATEGORIES);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -695,40 +694,40 @@ export default function AdminApplicationsManagement() {
   };
 
   // Get icon data for app
-const getAppIcon = (app) => {
-  console.log(`🔍 getAppIcon for app ${app.id}:`, {
-    icon_id: app.icon_id,
-    icon_in_app: app.icon,
-    has_relation: !!app.icon
-  });
-
-  // Pertama, coba gunakan icon dari relation (jika ada)
-  if (app.icon && typeof app.icon === 'object') {
-    console.log('✅ Using icon from app relation');
-    return app.icon;
-  }
-  
-  // Jika tidak ada relation, cari di icons list
-  if (app.icon_id) {
-    console.log(`🔍 Searching icon ${app.icon_id} in icons list`);
-    const foundIcon = icons.find(icon => {
-      const match = icon.id === app.icon_id;
-      if (match) {
-        console.log('✅ Found icon in icons list:', icon.name);
-      }
-      return match;
+  const getAppIcon = (app) => {
+    console.log(`🔍 getAppIcon for app ${app.id}:`, {
+      icon_id: app.icon_id,
+      icon_in_app: app.icon,
+      has_relation: !!app.icon,
     });
-    
-    if (foundIcon) {
-      return foundIcon;
-    } else {
-      console.warn(`⚠️ Icon ID ${app.icon_id} not found in icons list`);
+
+    // Pertama, coba gunakan icon dari relation (jika ada)
+    if (app.icon && typeof app.icon === "object") {
+      console.log("✅ Using icon from app relation");
+      return app.icon;
     }
-  }
-  
-  console.log('❌ No icon found for app');
-  return null;
-};
+
+    // Jika tidak ada relation, cari di icons list
+    if (app.icon_id) {
+      console.log(`🔍 Searching icon ${app.icon_id} in icons list`);
+      const foundIcon = icons.find((icon) => {
+        const match = icon.id === app.icon_id;
+        if (match) {
+          console.log("✅ Found icon in icons list:", icon.name);
+        }
+        return match;
+      });
+
+      if (foundIcon) {
+        return foundIcon;
+      } else {
+        console.warn(`⚠️ Icon ID ${app.icon_id} not found in icons list`);
+      }
+    }
+
+    console.log("❌ No icon found for app");
+    return null;
+  };
   // Initial data fetch
   useEffect(() => {
     fetchApplications();
@@ -847,7 +846,7 @@ const getAppIcon = (app) => {
       }
 
       // Gunakan fetch dengan FormData
-      const response = await fetch(`${API_BASE_URL}/applications`, {
+      const response = await fetch(API_ENDPOINTS.APPLICATIONS, {
         method: "POST",
         body: formData,
       });
@@ -973,7 +972,7 @@ const getAppIcon = (app) => {
 
       // Gunakan fetch dengan FormData
       const response = await fetch(
-        `${API_BASE_URL}/applications/${editApp.id}`,
+        API_ENDPOINTS.APPLICATION_BY_ID(editApp.id),
         {
           method: "PUT",
           body: formData,
@@ -1050,7 +1049,7 @@ const getAppIcon = (app) => {
 
     if (result.isConfirmed) {
       try {
-        const response = await fetch(`${API_BASE_URL}/applications/${app.id}`, {
+        const response = await fetch(API_ENDPOINTS.APPLICATION_BY_ID(app.id), {
           method: "DELETE",
         });
 
@@ -1099,15 +1098,12 @@ const getAppIcon = (app) => {
 
       console.log("Starting download for app:", app);
 
-      const response = await fetch(
-        `${API_BASE_URL}/applications/${app.id}/download`,
-        {
-          method: "GET",
-          headers: {
-            Accept: "application/octet-stream",
-          },
-        }
-      );
+      const response = await fetch(API_ENDPOINTS.APPLICATION_DOWNLOAD(app.id), {
+        method: "GET",
+        headers: {
+          Accept: "application/octet-stream",
+        },
+      });
 
       console.log("Download response status:", response.status);
 
@@ -1418,870 +1414,870 @@ const getAppIcon = (app) => {
   };
 
   return (
-     <ProtectedRoute allowedRoles={["admin", "superadmin"]}>
-    <LayoutDashboard>
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8 bg-gray-900 min-h-screen relative">
-        {/* Background Logo Transparan */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="relative w-full h-full">
-            <Image
-              src="/seatrium_logo_white.png"
-              alt="Seatrium Background Logo"
-              fill
-              className="object-contain opacity-5 scale-75"
-              priority
-            />
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="relative z-10">
-          {/* Page Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl sm:text-2xl font-bold text-white">
-              Applications Management
-            </h1>
-            <p className="text-gray-400 mt-2">
-              Manage all Seatrium Applications
-            </p>
-          </div>
-
-          {/* Search and Controls */}
-          <div className="mb-6 sm:mb-8">
-            <div className="bg-gray-800 rounded-lg shadow-sm border border-gray-700 p-4 mb-4">
-              <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-                <div className="flex-1 w-full">
-                  <div className="relative max-w-md">
-                    <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Search applications by title, full name, or category..."
-                      className="w-full pl-9 pr-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-white bg-gray-700 placeholder-gray-400"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex gap-2 w-full sm:w-auto">
-                  <button
-                    onClick={() => {
-                      fetchApplications();
-                      fetchIcons();
-                    }}
-                    disabled={isLoading}
-                    className="flex items-center gap-2 px-3 py-2 border border-gray-600 rounded-lg hover:bg-gray-700 transition text-sm text-gray-300 disabled:opacity-50"
-                  >
-                    <RefreshCw
-                      className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
-                    />
-                    {isLoading ? "Loading..." : "Refresh All"}
-                  </button>
-
-                  <button
-                    onClick={() => setShowAddModal(true)}
-                    className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add Application
-                  </button>
-                </div>
-              </div>
+    <ProtectedRoute allowedRoles={["admin", "superadmin"]}>
+      <LayoutDashboard>
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8 bg-gray-900 min-h-screen relative">
+          {/* Background Logo Transparan */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="relative w-full h-full">
+              <Image
+                src="/seatrium_logo_white.png"
+                alt="Seatrium Background Logo"
+                fill
+                className="object-contain opacity-5 scale-75"
+                priority
+              />
             </div>
           </div>
 
-          {/* Table Section */}
-          <div className="bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-lg border border-gray-700 mb-6">
-            {/* Table Header */}
-            <div className="bg-gray-800 rounded-lg shadow-sm border border-gray-700 overflow-hidden">
-              {/* Table Header */}
-              <div className="px-4 py-3 border-b border-gray-700 bg-gray-900">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-300">
-                    {filteredApps.length} of {apps.length} Applications
-                  </span>
-                  <ShowEntriesDropdown />
-                </div>
-              </div>
+          {/* Content */}
+          <div className="relative z-10">
+            {/* Page Header */}
+            <div className="mb-6">
+              <h1 className="text-2xl sm:text-2xl font-bold text-white">
+                Applications Management
+              </h1>
+              <p className="text-gray-400 mt-2">
+                Manage all Seatrium Applications
+              </p>
+            </div>
 
-              {/* Loading State */}
-              {isLoading ? (
-                <div className="flex justify-center items-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                  <span className="ml-3 text-gray-400">
-                    Loading applications...
-                  </span>
-                </div>
-              ) : (
-                <>
-                  {/* Desktop Table */}
-                  <div className="hidden sm:block overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="bg-gray-900 border-b border-gray-700">
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                            Application
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                            Full Name
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                            Category
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                            Version
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                            File
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                            File Size
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                            Status
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                            Downloads
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                            Actions
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-700">
-                        {currentData.map((app) => {
-                          const appIcon = getAppIcon(app);
-
-                          // Debug log untuk setiap row
-                          console.log(`📋 Table Row - App ${app.id}:`, {
-                            title: app.title,
-                            icon_id: app.icon_id,
-                            icon_from_app: app.icon,
-                            icon_from_getAppIcon: appIcon,
-                            has_relation: !!app.icon,
-                            icon_key: app.icon?.icon_key,
-                            icon_type: app.icon?.type,
-                          });
-
-                          return (
-                            <tr
-                              key={app.id}
-                              className="hover:bg-gray-700/50 transition-colors"
-                            >
-                              <td className="px-4 py-3">
-                                <div className="flex items-center gap-3">
-                                  <div className="p-2 bg-blue-900/50 rounded-lg">
-                                    {/* PERBAIKAN: Gunakan AppIcon langsung dengan app object */}
-                                    <AppIcon
-                                      app={app}
-                                      className="w-6 h-6 text-blue-400"
-                                    />
-                                  </div>
-                                  <div>
-                                    <div className="font-medium text-white">
-                                      {app.title}
-                                    </div>
-                                    <div className="text-xs text-gray-400">
-                                      ID: {app.id} | Icon:{" "}
-                                      {app.icon_id
-                                        ? `ID:${app.icon_id}`
-                                        : "None"}
-                                      {app.icon?.icon_key &&
-                                        ` (${app.icon.icon_key})`}
-                                    </div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-4 py-3 text-sm text-white max-w-[200px] truncate">
-                                {app.full_name}
-                              </td>
-                              <td className="px-4 py-3">
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-900/50 text-blue-400">
-                                  {app.category?.name}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3">
-                                <span className="text-sm text-white font-medium">
-                                  {app.version || "1.0.0"}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3">
-                                {app.file_name ? (
-                                  <div className="flex items-center gap-2">
-                                    <FileText className="w-4 h-4 text-gray-400" />
-                                    <span className="text-sm text-white truncate max-w-[150px]">
-                                      {app.file_name}
-                                    </span>
-                                  </div>
-                                ) : (
-                                  <span className="text-sm text-gray-500">
-                                    No file
-                                  </span>
-                                )}
-                              </td>
-                              <td className="px-4 py-3">
-                                {app.file_size ? (
-                                  <span className="text-sm text-white">
-                                    {formatFileSize(app.file_size)}
-                                  </span>
-                                ) : (
-                                  <span className="text-sm text-gray-500">
-                                    N/A
-                                  </span>
-                                )}
-                              </td>
-                              <td className="px-4 py-3">
-                                <span
-                                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                    app.status === "active"
-                                      ? "bg-green-900/50 text-green-400"
-                                      : "bg-red-900/50 text-red-400"
-                                  }`}
-                                >
-                                  {app.status}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 text-sm text-white">
-                                {app.download_count}
-                              </td>
-                              <td className="px-4 py-3">
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    onClick={() => {
-                                      setSelectedApp(app);
-                                      setShowDetailModal(true);
-                                    }}
-                                    className="p-1.5 text-gray-400 hover:text-blue-400 hover:bg-blue-900/30 rounded transition-all"
-                                    title="View Details"
-                                  >
-                                    <Eye className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setEditApp({
-                                        id: app.id,
-                                        title: app.title,
-                                        fullName: app.full_name,
-                                        categoryId: app.category_id,
-                                        iconId: app.icon_id,
-                                        version: app.version || "1.0.0",
-                                        description: app.description || "",
-                                        file: null,
-                                      });
-                                      setShowEditModal(true);
-                                    }}
-                                    className="p-1.5 text-gray-400 hover:text-green-400 hover:bg-green-900/30 rounded transition-all"
-                                    title="Edit"
-                                  >
-                                    <Edit className="w-4 h-4" />
-                                  </button>
-                                  {app.file_name && (
-                                    <button
-                                      onClick={() => handleDownload(app)}
-                                      className="p-1.5 text-gray-400 hover:text-blue-400 hover:bg-blue-900/30 rounded transition-all"
-                                      title="Download File"
-                                    >
-                                      <Download className="w-4 h-4" />
-                                    </button>
-                                  )}
-                                  <button
-                                    onClick={() => handleDeleteApp(app)}
-                                    className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-900/30 rounded transition-all"
-                                    title="Delete"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Mobile Cards */}
-                  <div className="sm:hidden p-4">
-                    {currentData.map((app) => (
-                      <MobileAppCard key={app.id} app={app} />
-                    ))}
-                  </div>
-
-                  {/* No Data State */}
-                  {filteredApps.length === 0 && !isLoading && (
-                    <div className="text-center py-12 text-gray-500">
-                      <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p className="text-lg">No applications found</p>
-                      <p className="text-sm mt-1">
-                        {searchQuery
-                          ? "Try adjusting your search terms"
-                          : "Get started by adding a new application"}
-                      </p>
+            {/* Search and Controls */}
+            <div className="mb-6 sm:mb-8">
+              <div className="bg-gray-800 rounded-lg shadow-sm border border-gray-700 p-4 mb-4">
+                <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+                  <div className="flex-1 w-full">
+                    <div className="relative max-w-md">
+                      <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search applications by title, full name, or category..."
+                        className="w-full pl-9 pr-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-white bg-gray-700 placeholder-gray-400"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                      />
                     </div>
-                  )}
+                  </div>
 
-                  {/* Pagination */}
-                  {(totalPages > 1 || itemsPerPage !== 10) &&
-                    filteredApps.length > 0 && (
-                      <div className="px-4 py-3 border-t border-gray-700 bg-gray-900">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                          <div className="flex items-center gap-3">
-                            <ShowEntriesDropdown />
-                            <p className="text-xs text-gray-300">
-                              Showing{" "}
-                              <span className="font-semibold">
-                                {filteredApps.length === 0
-                                  ? 0
-                                  : (currentPage - 1) * itemsPerPage + 1}
-                                -
-                                {Math.min(
-                                  currentPage * itemsPerPage,
-                                  filteredApps.length
-                                )}
-                              </span>{" "}
-                              of{" "}
-                              <span className="font-semibold">
-                                {filteredApps.length}
-                              </span>{" "}
-                              applications
-                            </p>
-                          </div>
-
-                          {totalPages > 1 && (
-                            <div className="flex gap-1 justify-center">
-                              <button
-                                onClick={() =>
-                                  setCurrentPage((prev) =>
-                                    Math.max(prev - 1, 1)
-                                  )
-                                }
-                                disabled={currentPage === 1}
-                                className="px-3 py-1 text-xs font-medium text-gray-300 bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                              >
-                                ← Prev
-                              </button>
-                              <button
-                                onClick={() =>
-                                  setCurrentPage((prev) =>
-                                    Math.min(prev + 1, totalPages)
-                                  )
-                                }
-                                disabled={currentPage === totalPages}
-                                className="px-3 py-1 text-xs font-medium text-gray-300 bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                              >
-                                Next →
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Detail Modal */}
-        {showDetailModal && selectedApp && (
-          <AppDetailModal
-            app={selectedApp}
-            onClose={() => setShowDetailModal(false)}
-          />
-        )}
-
-        {/* Add Modal */}
-        {showAddModal && (
-          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-3">
-            <div className="bg-gray-800 rounded-lg w-full max-w-xl p-6 shadow-2xl animate-fade-in relative mx-auto border border-gray-700 max-h-[90vh] overflow-y-auto">
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="absolute top-3 right-3 text-gray-400 hover:text-gray-100 transition"
-                disabled={isSubmitting || isUploading}
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              <h2 className="text-xl font-bold text-gray-100 mb-6">
-                Add New Application
-              </h2>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Title *
-                  </label>
-                  <input
-                    type="text"
-                    value={newApp.title}
-                    onChange={(e) =>
-                      setNewApp({ ...newApp, title: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white bg-gray-700 placeholder-gray-500"
-                    placeholder="Enter application title"
-                    disabled={isSubmitting}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={newApp.fullName}
-                    onChange={(e) =>
-                      setNewApp({ ...newApp, fullName: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white bg-gray-700 placeholder-gray-500"
-                    placeholder="Enter full application name"
-                    disabled={isSubmitting}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Category *
-                  </label>
-                  <select
-                    value={newApp.categoryId}
-                    onChange={(e) =>
-                      setNewApp({ ...newApp, categoryId: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white bg-gray-700"
-                    disabled={isSubmitting}
-                  >
-                    <option value="" className="text-gray-500">
-                      {categories.length === 0
-                        ? "Loading categories..."
-                        : "Select Category"}
-                    </option>
-                    {categories.map((category) => (
-                      <option
-                        key={category.id}
-                        value={category.id}
-                        className="text-white"
-                      >
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                  {categories.length === 0 && (
-                    <p className="text-xs text-yellow-500 mt-1">
-                      No categories available. Please create categories first.
-                    </p>
-                  )}
-                </div>
-
-                {/* Icon Field - menggunakan IconDropdown */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Application Icon
-                  </label>
-                  <IconDropdown
-                    selectedIcon={icons.find(
-                      (icon) => icon.id === parseInt(newApp.iconId)
-                    )}
-                    onSelectIcon={(icon) => {
-                      console.log("Icon selected in add modal:", icon);
-                      setNewApp({ ...newApp, iconId: icon.id.toString() });
-                    }}
-                    isOpen={showIconDropdown}
-                    onToggle={() => {
-                      setShowIconDropdown(!showIconDropdown);
-                      setIconSearch("");
-                    }}
-                    searchQuery={iconSearch}
-                    onSearchChange={setIconSearch}
-                    currentIconId={newApp.iconId} // Tambah prop ini
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Choose from icon library or upload your own icon
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Version
-                  </label>
-                  <input
-                    type="text"
-                    value={newApp.version}
-                    onChange={(e) =>
-                      setNewApp({ ...newApp, version: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white bg-gray-700 placeholder-gray-500"
-                    placeholder="1.0.0"
-                    disabled={isSubmitting}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    value={newApp.description}
-                    onChange={(e) =>
-                      setNewApp({ ...newApp, description: e.target.value })
-                    }
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white bg-gray-700 placeholder-gray-500"
-                    placeholder="Enter application description"
-                    disabled={isSubmitting}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Installation File
-                  </label>
-                  <div className="border-2 border-dashed border-gray-600 rounded-lg p-4 hover:border-blue-500 transition-colors">
-                    <input
-                      type="file"
-                      onChange={(e) =>
-                        setNewApp({ ...newApp, file: e.target.files[0] })
-                      }
-                      className="hidden"
-                      id="file-upload"
-                      accept=".exe,.msi,.dmg,.pkg,.deb,.rpm,.apk,.ipa,.zip,.rar,.7z,.tar,.gz"
-                      disabled={isSubmitting || isUploading}
-                    />
-                    <label
-                      htmlFor="file-upload"
-                      className="cursor-pointer flex flex-col items-center justify-center text-center"
+                  <div className="flex gap-2 w-full sm:w-auto">
+                    <button
+                      onClick={() => {
+                        fetchApplications();
+                        fetchIcons();
+                      }}
+                      disabled={isLoading}
+                      className="flex items-center gap-2 px-3 py-2 border border-gray-600 rounded-lg hover:bg-gray-700 transition text-sm text-gray-300 disabled:opacity-50"
                     >
-                      {newApp.file ? (
-                        <>
-                          <FileText className="w-8 h-8 text-blue-400 mb-2" />
-                          <span className="text-sm text-blue-400 font-medium">
-                            {newApp.file.name}
-                          </span>
-                          <span className="text-xs text-gray-400 mt-1">
-                            Size: {formatFileSize(newApp.file.size)}
-                          </span>
-                          <span className="text-xs text-gray-400 mt-1">
-                            Click to change file
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <Download className="w-8 h-8 text-gray-400 mb-2" />
-                          <span className="text-sm text-gray-400">
-                            <span className="text-blue-400 font-medium">
-                              Click to upload
-                            </span>{" "}
-                            or drag and drop
-                          </span>
-                          <span className="text-xs text-gray-500 mt-1">
-                            Supported formats: EXE, MSI, DMG, PKG, DEB, RPM,
-                            APK, IPA, ZIP, RAR, 7Z, TAR, GZ
-                          </span>
-                        </>
-                      )}
-                    </label>
-                  </div>
+                      <RefreshCw
+                        className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
+                      />
+                      {isLoading ? "Loading..." : "Refresh All"}
+                    </button>
 
-                  {isUploading && (
-                    <div className="mt-4">
-                      <div className="flex justify-between text-xs text-gray-400 mb-1">
-                        <span>Uploading...</span>
-                        <span>{uploadProgress}%</span>
-                      </div>
-                      <div className="w-full bg-gray-700 rounded-full h-2">
-                        <div
-                          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${uploadProgress}%` }}
-                        ></div>
-                      </div>
-                      <p className="text-xs text-gray-400 mt-1">
-                        Please wait while your file is being uploaded...
-                      </p>
-                    </div>
-                  )}
+                    <button
+                      onClick={() => setShowAddModal(true)}
+                      className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Application
+                    </button>
+                  </div>
                 </div>
               </div>
+            </div>
 
-              <div className="flex justify-end gap-3 mt-6">
+            {/* Table Section */}
+            <div className="bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-lg border border-gray-700 mb-6">
+              {/* Table Header */}
+              <div className="bg-gray-800 rounded-lg shadow-sm border border-gray-700 overflow-hidden">
+                {/* Table Header */}
+                <div className="px-4 py-3 border-b border-gray-700 bg-gray-900">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-gray-300">
+                      {filteredApps.length} of {apps.length} Applications
+                    </span>
+                    <ShowEntriesDropdown />
+                  </div>
+                </div>
+
+                {/* Loading State */}
+                {isLoading ? (
+                  <div className="flex justify-center items-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                    <span className="ml-3 text-gray-400">
+                      Loading applications...
+                    </span>
+                  </div>
+                ) : (
+                  <>
+                    {/* Desktop Table */}
+                    <div className="hidden sm:block overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="bg-gray-900 border-b border-gray-700">
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                              Application
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                              Full Name
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                              Category
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                              Version
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                              File
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                              File Size
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                              Status
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                              Downloads
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                              Actions
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-700">
+                          {currentData.map((app) => {
+                            const appIcon = getAppIcon(app);
+
+                            // Debug log untuk setiap row
+                            console.log(`📋 Table Row - App ${app.id}:`, {
+                              title: app.title,
+                              icon_id: app.icon_id,
+                              icon_from_app: app.icon,
+                              icon_from_getAppIcon: appIcon,
+                              has_relation: !!app.icon,
+                              icon_key: app.icon?.icon_key,
+                              icon_type: app.icon?.type,
+                            });
+
+                            return (
+                              <tr
+                                key={app.id}
+                                className="hover:bg-gray-700/50 transition-colors"
+                              >
+                                <td className="px-4 py-3">
+                                  <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-blue-900/50 rounded-lg">
+                                      {/* PERBAIKAN: Gunakan AppIcon langsung dengan app object */}
+                                      <AppIcon
+                                        app={app}
+                                        className="w-6 h-6 text-blue-400"
+                                      />
+                                    </div>
+                                    <div>
+                                      <div className="font-medium text-white">
+                                        {app.title}
+                                      </div>
+                                      <div className="text-xs text-gray-400">
+                                        ID: {app.id} | Icon:{" "}
+                                        {app.icon_id
+                                          ? `ID:${app.icon_id}`
+                                          : "None"}
+                                        {app.icon?.icon_key &&
+                                          ` (${app.icon.icon_key})`}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3 text-sm text-white max-w-[200px] truncate">
+                                  {app.full_name}
+                                </td>
+                                <td className="px-4 py-3">
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-900/50 text-blue-400">
+                                    {app.category?.name}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3">
+                                  <span className="text-sm text-white font-medium">
+                                    {app.version || "1.0.0"}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3">
+                                  {app.file_name ? (
+                                    <div className="flex items-center gap-2">
+                                      <FileText className="w-4 h-4 text-gray-400" />
+                                      <span className="text-sm text-white truncate max-w-[150px]">
+                                        {app.file_name}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <span className="text-sm text-gray-500">
+                                      No file
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3">
+                                  {app.file_size ? (
+                                    <span className="text-sm text-white">
+                                      {formatFileSize(app.file_size)}
+                                    </span>
+                                  ) : (
+                                    <span className="text-sm text-gray-500">
+                                      N/A
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3">
+                                  <span
+                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                      app.status === "active"
+                                        ? "bg-green-900/50 text-green-400"
+                                        : "bg-red-900/50 text-red-400"
+                                    }`}
+                                  >
+                                    {app.status}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3 text-sm text-white">
+                                  {app.download_count}
+                                </td>
+                                <td className="px-4 py-3">
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => {
+                                        setSelectedApp(app);
+                                        setShowDetailModal(true);
+                                      }}
+                                      className="p-1.5 text-gray-400 hover:text-blue-400 hover:bg-blue-900/30 rounded transition-all"
+                                      title="View Details"
+                                    >
+                                      <Eye className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setEditApp({
+                                          id: app.id,
+                                          title: app.title,
+                                          fullName: app.full_name,
+                                          categoryId: app.category_id,
+                                          iconId: app.icon_id,
+                                          version: app.version || "1.0.0",
+                                          description: app.description || "",
+                                          file: null,
+                                        });
+                                        setShowEditModal(true);
+                                      }}
+                                      className="p-1.5 text-gray-400 hover:text-green-400 hover:bg-green-900/30 rounded transition-all"
+                                      title="Edit"
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </button>
+                                    {app.file_name && (
+                                      <button
+                                        onClick={() => handleDownload(app)}
+                                        className="p-1.5 text-gray-400 hover:text-blue-400 hover:bg-blue-900/30 rounded transition-all"
+                                        title="Download File"
+                                      >
+                                        <Download className="w-4 h-4" />
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={() => handleDeleteApp(app)}
+                                      className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-900/30 rounded transition-all"
+                                      title="Delete"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Mobile Cards */}
+                    <div className="sm:hidden p-4">
+                      {currentData.map((app) => (
+                        <MobileAppCard key={app.id} app={app} />
+                      ))}
+                    </div>
+
+                    {/* No Data State */}
+                    {filteredApps.length === 0 && !isLoading && (
+                      <div className="text-center py-12 text-gray-500">
+                        <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                        <p className="text-lg">No applications found</p>
+                        <p className="text-sm mt-1">
+                          {searchQuery
+                            ? "Try adjusting your search terms"
+                            : "Get started by adding a new application"}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Pagination */}
+                    {(totalPages > 1 || itemsPerPage !== 10) &&
+                      filteredApps.length > 0 && (
+                        <div className="px-4 py-3 border-t border-gray-700 bg-gray-900">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                              <ShowEntriesDropdown />
+                              <p className="text-xs text-gray-300">
+                                Showing{" "}
+                                <span className="font-semibold">
+                                  {filteredApps.length === 0
+                                    ? 0
+                                    : (currentPage - 1) * itemsPerPage + 1}
+                                  -
+                                  {Math.min(
+                                    currentPage * itemsPerPage,
+                                    filteredApps.length
+                                  )}
+                                </span>{" "}
+                                of{" "}
+                                <span className="font-semibold">
+                                  {filteredApps.length}
+                                </span>{" "}
+                                applications
+                              </p>
+                            </div>
+
+                            {totalPages > 1 && (
+                              <div className="flex gap-1 justify-center">
+                                <button
+                                  onClick={() =>
+                                    setCurrentPage((prev) =>
+                                      Math.max(prev - 1, 1)
+                                    )
+                                  }
+                                  disabled={currentPage === 1}
+                                  className="px-3 py-1 text-xs font-medium text-gray-300 bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                  ← Prev
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    setCurrentPage((prev) =>
+                                      Math.min(prev + 1, totalPages)
+                                    )
+                                  }
+                                  disabled={currentPage === totalPages}
+                                  className="px-3 py-1 text-xs font-medium text-gray-300 bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                  Next →
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Detail Modal */}
+          {showDetailModal && selectedApp && (
+            <AppDetailModal
+              app={selectedApp}
+              onClose={() => setShowDetailModal(false)}
+            />
+          )}
+
+          {/* Add Modal */}
+          {showAddModal && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-3">
+              <div className="bg-gray-800 rounded-lg w-full max-w-xl p-6 shadow-2xl animate-fade-in relative mx-auto border border-gray-700 max-h-[90vh] overflow-y-auto">
                 <button
                   onClick={() => setShowAddModal(false)}
+                  className="absolute top-3 right-3 text-gray-400 hover:text-gray-100 transition"
                   disabled={isSubmitting || isUploading}
-                  className="px-4 py-2 text-sm font-medium text-gray-100 bg-gray-600 rounded-lg hover:bg-gray-700 transition disabled:opacity-50"
                 >
-                  Cancel
+                  <X className="w-5 h-5" />
                 </button>
-                <button
-                  onClick={handleCreateApp}
-                  disabled={
-                    isSubmitting || isUploading || categories.length === 0
-                  }
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-500 transition disabled:opacity-50 flex items-center gap-2"
-                >
-                  {isUploading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Uploading... ({uploadProgress}%)
-                    </>
-                  ) : isSubmitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Creating...
-                    </>
-                  ) : (
-                    "Create Application"
-                  )}
-                </button>
+
+                <h2 className="text-xl font-bold text-gray-100 mb-6">
+                  Add New Application
+                </h2>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      Title *
+                    </label>
+                    <input
+                      type="text"
+                      value={newApp.title}
+                      onChange={(e) =>
+                        setNewApp({ ...newApp, title: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white bg-gray-700 placeholder-gray-500"
+                      placeholder="Enter application title"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={newApp.fullName}
+                      onChange={(e) =>
+                        setNewApp({ ...newApp, fullName: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white bg-gray-700 placeholder-gray-500"
+                      placeholder="Enter full application name"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      Category *
+                    </label>
+                    <select
+                      value={newApp.categoryId}
+                      onChange={(e) =>
+                        setNewApp({ ...newApp, categoryId: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white bg-gray-700"
+                      disabled={isSubmitting}
+                    >
+                      <option value="" className="text-gray-500">
+                        {categories.length === 0
+                          ? "Loading categories..."
+                          : "Select Category"}
+                      </option>
+                      {categories.map((category) => (
+                        <option
+                          key={category.id}
+                          value={category.id}
+                          className="text-white"
+                        >
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                    {categories.length === 0 && (
+                      <p className="text-xs text-yellow-500 mt-1">
+                        No categories available. Please create categories first.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Icon Field - menggunakan IconDropdown */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      Application Icon
+                    </label>
+                    <IconDropdown
+                      selectedIcon={icons.find(
+                        (icon) => icon.id === parseInt(newApp.iconId)
+                      )}
+                      onSelectIcon={(icon) => {
+                        console.log("Icon selected in add modal:", icon);
+                        setNewApp({ ...newApp, iconId: icon.id.toString() });
+                      }}
+                      isOpen={showIconDropdown}
+                      onToggle={() => {
+                        setShowIconDropdown(!showIconDropdown);
+                        setIconSearch("");
+                      }}
+                      searchQuery={iconSearch}
+                      onSearchChange={setIconSearch}
+                      currentIconId={newApp.iconId} // Tambah prop ini
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Choose from icon library or upload your own icon
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      Version
+                    </label>
+                    <input
+                      type="text"
+                      value={newApp.version}
+                      onChange={(e) =>
+                        setNewApp({ ...newApp, version: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white bg-gray-700 placeholder-gray-500"
+                      placeholder="1.0.0"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      value={newApp.description}
+                      onChange={(e) =>
+                        setNewApp({ ...newApp, description: e.target.value })
+                      }
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white bg-gray-700 placeholder-gray-500"
+                      placeholder="Enter application description"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      Installation File
+                    </label>
+                    <div className="border-2 border-dashed border-gray-600 rounded-lg p-4 hover:border-blue-500 transition-colors">
+                      <input
+                        type="file"
+                        onChange={(e) =>
+                          setNewApp({ ...newApp, file: e.target.files[0] })
+                        }
+                        className="hidden"
+                        id="file-upload"
+                        accept=".exe,.msi,.dmg,.pkg,.deb,.rpm,.apk,.ipa,.zip,.rar,.7z,.tar,.gz"
+                        disabled={isSubmitting || isUploading}
+                      />
+                      <label
+                        htmlFor="file-upload"
+                        className="cursor-pointer flex flex-col items-center justify-center text-center"
+                      >
+                        {newApp.file ? (
+                          <>
+                            <FileText className="w-8 h-8 text-blue-400 mb-2" />
+                            <span className="text-sm text-blue-400 font-medium">
+                              {newApp.file.name}
+                            </span>
+                            <span className="text-xs text-gray-400 mt-1">
+                              Size: {formatFileSize(newApp.file.size)}
+                            </span>
+                            <span className="text-xs text-gray-400 mt-1">
+                              Click to change file
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <Download className="w-8 h-8 text-gray-400 mb-2" />
+                            <span className="text-sm text-gray-400">
+                              <span className="text-blue-400 font-medium">
+                                Click to upload
+                              </span>{" "}
+                              or drag and drop
+                            </span>
+                            <span className="text-xs text-gray-500 mt-1">
+                              Supported formats: EXE, MSI, DMG, PKG, DEB, RPM,
+                              APK, IPA, ZIP, RAR, 7Z, TAR, GZ
+                            </span>
+                          </>
+                        )}
+                      </label>
+                    </div>
+
+                    {isUploading && (
+                      <div className="mt-4">
+                        <div className="flex justify-between text-xs text-gray-400 mb-1">
+                          <span>Uploading...</span>
+                          <span>{uploadProgress}%</span>
+                        </div>
+                        <div className="w-full bg-gray-700 rounded-full h-2">
+                          <div
+                            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${uploadProgress}%` }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Please wait while your file is being uploaded...
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 mt-6">
+                  <button
+                    onClick={() => setShowAddModal(false)}
+                    disabled={isSubmitting || isUploading}
+                    className="px-4 py-2 text-sm font-medium text-gray-100 bg-gray-600 rounded-lg hover:bg-gray-700 transition disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCreateApp}
+                    disabled={
+                      isSubmitting || isUploading || categories.length === 0
+                    }
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-500 transition disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {isUploading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Uploading... ({uploadProgress}%)
+                      </>
+                    ) : isSubmitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Creating...
+                      </>
+                    ) : (
+                      "Create Application"
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Edit Modal */}
-        {showEditModal && (
-          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-3">
-            <div className="bg-gray-800 rounded-lg w-full max-w-xl p-6 shadow-2xl animate-fade-in relative mx-auto border border-gray-700 max-h-[90vh] overflow-y-auto">
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="absolute top-3 right-3 text-gray-400 hover:text-gray-100 transition"
-                disabled={isSubmitting || isUploading}
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              <h2 className="text-xl font-bold text-gray-100 mb-6">
-                Edit Application: {editApp.title}
-              </h2>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Title *
-                  </label>
-                  <input
-                    type="text"
-                    value={editApp.title}
-                    onChange={(e) =>
-                      setEditApp({ ...editApp, title: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white bg-gray-700"
-                    disabled={isSubmitting}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={editApp.fullName}
-                    onChange={(e) =>
-                      setEditApp({ ...editApp, fullName: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white bg-gray-700"
-                    disabled={isSubmitting}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Category *
-                  </label>
-                  <select
-                    value={editApp.categoryId}
-                    onChange={(e) =>
-                      setEditApp({ ...editApp, categoryId: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white bg-gray-700"
-                    disabled={isSubmitting}
-                  >
-                    <option value="" className="text-gray-500">
-                      {categories.length === 0
-                        ? "Loading categories..."
-                        : "Select Category"}
-                    </option>
-                    {categories.map((category) => (
-                      <option
-                        key={category.id}
-                        value={category.id}
-                        className="text-white"
-                      >
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Icon Field - menggunakan IconDropdown */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Application Icon
-                  </label>
-                  <IconDropdown
-                    selectedIcon={icons.find(
-                      (icon) => icon.id === parseInt(editApp.iconId)
-                    )}
-                    onSelectIcon={(icon) => {
-                      console.log("Icon selected in edit modal:", icon);
-                      setEditApp({ ...editApp, iconId: icon.id.toString() });
-                    }}
-                    isOpen={showEditIconDropdown}
-                    onToggle={() => {
-                      setShowEditIconDropdown(!showEditIconDropdown);
-                      setEditIconSearch("");
-                    }}
-                    searchQuery={editIconSearch}
-                    onSearchChange={setEditIconSearch}
-                    isEdit={true}
-                    currentIconId={editApp.iconId} // Tambah prop ini
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Choose from icon library or upload your own icon
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Version
-                  </label>
-                  <input
-                    type="text"
-                    value={editApp.version}
-                    onChange={(e) =>
-                      setEditApp({ ...editApp, version: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white bg-gray-700"
-                    disabled={isSubmitting}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    value={editApp.description}
-                    onChange={(e) =>
-                      setEditApp({ ...editApp, description: e.target.value })
-                    }
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white bg-gray-700"
-                    disabled={isSubmitting}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Update Installation File
-                  </label>
-                  <div className="border-2 border-dashed border-gray-600 rounded-lg p-4 hover:border-blue-500 transition-colors">
-                    <input
-                      type="file"
-                      onChange={(e) =>
-                        setEditApp({ ...editApp, file: e.target.files[0] })
-                      }
-                      className="hidden"
-                      id="edit-file-upload"
-                      accept=".exe,.msi,.dmg,.pkg,.deb,.rpm,.apk,.ipa,.zip,.rar,.7z,.tar,.gz"
-                      disabled={isSubmitting || isUploading}
-                    />
-                    <label
-                      htmlFor="edit-file-upload"
-                      className="cursor-pointer flex flex-col items-center justify-center text-center"
-                    >
-                      {editApp.file ? (
-                        <>
-                          <FileText className="w-8 h-8 text-blue-400 mb-2" />
-                          <span className="text-sm text-blue-400 font-medium">
-                            {editApp.file.name}
-                          </span>
-                          <span className="text-xs text-gray-400 mt-1">
-                            Size: {formatFileSize(editApp.file.size)}
-                          </span>
-                          <span className="text-xs text-gray-400 mt-1">
-                            Click to change file
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <Download className="w-8 h-8 text-gray-400 mb-2" />
-                          <span className="text-sm text-gray-400">
-                            <span className="text-blue-400 font-medium">
-                              Click to upload
-                            </span>{" "}
-                            new file
-                          </span>
-                          <span className="text-xs text-gray-500 mt-1">
-                            Upload new file to replace existing one
-                          </span>
-                        </>
-                      )}
-                    </label>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-2">
-                    Leave empty to keep the current file
-                  </p>
-
-                  {isUploading && (
-                    <div className="mt-4">
-                      <div className="flex justify-between text-xs text-gray-400 mb-1">
-                        <span>Uploading...</span>
-                        <span>{uploadProgress}%</span>
-                      </div>
-                      <div className="w-full bg-gray-700 rounded-full h-2">
-                        <div
-                          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${uploadProgress}%` }}
-                        ></div>
-                      </div>
-                      <p className="text-xs text-gray-400 mt-1">
-                        Please wait while your file is being uploaded...
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 mt-6">
+          {/* Edit Modal */}
+          {showEditModal && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-3">
+              <div className="bg-gray-800 rounded-lg w-full max-w-xl p-6 shadow-2xl animate-fade-in relative mx-auto border border-gray-700 max-h-[90vh] overflow-y-auto">
                 <button
                   onClick={() => setShowEditModal(false)}
+                  className="absolute top-3 right-3 text-gray-400 hover:text-gray-100 transition"
                   disabled={isSubmitting || isUploading}
-                  className="px-4 py-2 text-sm font-medium text-gray-100 bg-gray-600 rounded-lg hover:bg-gray-700 transition disabled:opacity-50"
                 >
-                  Cancel
+                  <X className="w-5 h-5" />
                 </button>
-                <button
-                  onClick={handleUpdateApp}
-                  disabled={isSubmitting || isUploading}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-500 transition disabled:opacity-50 flex items-center gap-2"
-                >
-                  {isUploading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Uploading... ({uploadProgress}%)
-                    </>
-                  ) : isSubmitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Updating...
-                    </>
-                  ) : (
-                    "Update Application"
-                  )}
-                </button>
+
+                <h2 className="text-xl font-bold text-gray-100 mb-6">
+                  Edit Application: {editApp.title}
+                </h2>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      Title *
+                    </label>
+                    <input
+                      type="text"
+                      value={editApp.title}
+                      onChange={(e) =>
+                        setEditApp({ ...editApp, title: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white bg-gray-700"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={editApp.fullName}
+                      onChange={(e) =>
+                        setEditApp({ ...editApp, fullName: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white bg-gray-700"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      Category *
+                    </label>
+                    <select
+                      value={editApp.categoryId}
+                      onChange={(e) =>
+                        setEditApp({ ...editApp, categoryId: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white bg-gray-700"
+                      disabled={isSubmitting}
+                    >
+                      <option value="" className="text-gray-500">
+                        {categories.length === 0
+                          ? "Loading categories..."
+                          : "Select Category"}
+                      </option>
+                      {categories.map((category) => (
+                        <option
+                          key={category.id}
+                          value={category.id}
+                          className="text-white"
+                        >
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Icon Field - menggunakan IconDropdown */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      Application Icon
+                    </label>
+                    <IconDropdown
+                      selectedIcon={icons.find(
+                        (icon) => icon.id === parseInt(editApp.iconId)
+                      )}
+                      onSelectIcon={(icon) => {
+                        console.log("Icon selected in edit modal:", icon);
+                        setEditApp({ ...editApp, iconId: icon.id.toString() });
+                      }}
+                      isOpen={showEditIconDropdown}
+                      onToggle={() => {
+                        setShowEditIconDropdown(!showEditIconDropdown);
+                        setEditIconSearch("");
+                      }}
+                      searchQuery={editIconSearch}
+                      onSearchChange={setEditIconSearch}
+                      isEdit={true}
+                      currentIconId={editApp.iconId} // Tambah prop ini
+                    />
+                    <p className="text-xs text-gray-400 mt-1">
+                      Choose from icon library or upload your own icon
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      Version
+                    </label>
+                    <input
+                      type="text"
+                      value={editApp.version}
+                      onChange={(e) =>
+                        setEditApp({ ...editApp, version: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white bg-gray-700"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      value={editApp.description}
+                      onChange={(e) =>
+                        setEditApp({ ...editApp, description: e.target.value })
+                      }
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white bg-gray-700"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      Update Installation File
+                    </label>
+                    <div className="border-2 border-dashed border-gray-600 rounded-lg p-4 hover:border-blue-500 transition-colors">
+                      <input
+                        type="file"
+                        onChange={(e) =>
+                          setEditApp({ ...editApp, file: e.target.files[0] })
+                        }
+                        className="hidden"
+                        id="edit-file-upload"
+                        accept=".exe,.msi,.dmg,.pkg,.deb,.rpm,.apk,.ipa,.zip,.rar,.7z,.tar,.gz"
+                        disabled={isSubmitting || isUploading}
+                      />
+                      <label
+                        htmlFor="edit-file-upload"
+                        className="cursor-pointer flex flex-col items-center justify-center text-center"
+                      >
+                        {editApp.file ? (
+                          <>
+                            <FileText className="w-8 h-8 text-blue-400 mb-2" />
+                            <span className="text-sm text-blue-400 font-medium">
+                              {editApp.file.name}
+                            </span>
+                            <span className="text-xs text-gray-400 mt-1">
+                              Size: {formatFileSize(editApp.file.size)}
+                            </span>
+                            <span className="text-xs text-gray-400 mt-1">
+                              Click to change file
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <Download className="w-8 h-8 text-gray-400 mb-2" />
+                            <span className="text-sm text-gray-400">
+                              <span className="text-blue-400 font-medium">
+                                Click to upload
+                              </span>{" "}
+                              new file
+                            </span>
+                            <span className="text-xs text-gray-500 mt-1">
+                              Upload new file to replace existing one
+                            </span>
+                          </>
+                        )}
+                      </label>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-2">
+                      Leave empty to keep the current file
+                    </p>
+
+                    {isUploading && (
+                      <div className="mt-4">
+                        <div className="flex justify-between text-xs text-gray-400 mb-1">
+                          <span>Uploading...</span>
+                          <span>{uploadProgress}%</span>
+                        </div>
+                        <div className="w-full bg-gray-700 rounded-full h-2">
+                          <div
+                            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${uploadProgress}%` }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Please wait while your file is being uploaded...
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 mt-6">
+                  <button
+                    onClick={() => setShowEditModal(false)}
+                    disabled={isSubmitting || isUploading}
+                    className="px-4 py-2 text-sm font-medium text-gray-100 bg-gray-600 rounded-lg hover:bg-gray-700 transition disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleUpdateApp}
+                    disabled={isSubmitting || isUploading}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-500 transition disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {isUploading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Uploading... ({uploadProgress}%)
+                      </>
+                    ) : isSubmitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Updating...
+                      </>
+                    ) : (
+                      "Update Application"
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </div>
-      {/* Footer */}
-      <footer className="mt-12 py-6 text-center text-gray-400 text-sm border-t border-gray-700/50 relative z-10">
-        <div className="max-w-6xl mx-auto px-4">
-          <p>IT Applications Dashboard</p>
-          <p className="mt-1">seatrium.com</p>
+          )}
         </div>
-      </footer>
-    </LayoutDashboard>
+        {/* Footer */}
+        <footer className="mt-12 py-6 text-center text-gray-400 text-sm border-t border-gray-700/50 relative z-10">
+          <div className="max-w-6xl mx-auto px-4">
+            <p>IT Applications Dashboard</p>
+            <p className="mt-1">seatrium.com</p>
+          </div>
+        </footer>
+      </LayoutDashboard>
     </ProtectedRoute>
   );
 }
