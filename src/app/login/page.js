@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -8,57 +9,44 @@ import Image from "next/image";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import Swal from "sweetalert2";
 import { useAuth } from "../context/AuthContext";
+import API_BASE_URL, { API_ENDPOINTS } from "../../config/api";
 
 const poppins = Poppins({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
 });
 
-const API_BASE_URL = "http://localhost:5000";
-
 export default function LoginPage() {
   const router = useRouter();
-  const { login, user } = useAuth();
+  const { login, user, loading: authLoading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
   const [loading, setLoading] = useState(false);
-  const [checkingAuth, setCheckingAuth] = useState(true);
 
-  // Check jika user sudah login
+  // ✅ PENTING: Gunakan authLoading dari context, hapus checkingAuth
   useEffect(() => {
-    const checkAuth = () => {
-      const storedUser = localStorage.getItem("user");
-      
-      if (storedUser) {
-        try {
-          const userData = JSON.parse(storedUser);
-          // PERBAIKI: Tambahkan pengecekan untuk guest
-          if (userData.role === "admin" || userData.role === "superadmin") {
-            router.push("/admin/dashboard");
-          } else if (userData.role === "user" || userData.role === "guest") {
-            router.push("/user/dashboard");
-          }
-        } catch (error) {
-          setCheckingAuth(false);
-        }
+    // Jika user sudah login, redirect langsung
+    if (user && !authLoading) {
+      if (user.role === "admin" || user.role === "superadmin") {
+        router.push("/admin/dashboard");
       } else {
-        setCheckingAuth(false);
+        router.push("/user/dashboard");
       }
-    };
-
-    checkAuth();
-  }, [router]);
+    }
+  }, [user, authLoading, router]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // ✅ PENTING: Prevent double submission
+    if (loading) return;
+    
     setLoading(true);
 
     try {
-      console.log("Login attempt:", formData);
-
       if (!formData.email || !formData.password) {
         Swal.fire({
           title: "Error",
@@ -72,7 +60,7 @@ export default function LoginPage() {
         return;
       }
 
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      const response = await fetch(API_ENDPOINTS.LOGIN, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -93,27 +81,29 @@ export default function LoginPage() {
 
       if (result.status === "success") {
         const userData = result.data.user;
-        localStorage.setItem("user", JSON.stringify(userData));
-
-        // Use context login function
-        login(userData);
         
-        Swal.fire({
+        // ✅ PENTING: Tampilkan alert SEBELUM login
+        await Swal.fire({
           title: "Success!",
           text: "Login successful!",
           icon: "success",
           confirmButtonColor: "#1e40af",
           background: "#1f2937",
           color: "#f9fafb",
+          allowOutsideClick: false,
+          allowEscapeKey: false,
         });
 
-        // PERBAIKI: Tidak perlu setTimeout karena AuthContext sudah handle redirect
-        // Biarkan AuthContext yang handle redirect
+        // ✅ PENTING: Baru panggil login() SETELAH alert ditutup
+        // Context akan handle redirect otomatis
+        login(userData);
       } else {
         throw new Error(result.message || "Login failed");
       }
     } catch (error) {
       console.error("Login error:", error);
+      setLoading(false);
+      
       Swal.fire({
         title: "Login Failed",
         text: error.message || "Invalid email or password",
@@ -122,9 +112,8 @@ export default function LoginPage() {
         background: "#1f2937",
         color: "#f9fafb",
       });
-    } finally {
-      setLoading(false);
     }
+    // ✅ Jangan set loading = false di sini, biarkan redirect terjadi
   };
 
   const handleChange = (e) => {
@@ -134,7 +123,8 @@ export default function LoginPage() {
     });
   };
 
-  if (checkingAuth) {
+  // ✅ Gunakan authLoading dari context
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-900">
         <div className="flex flex-col items-center">
@@ -261,7 +251,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Remember Me & Forgot Password */}
+            {/* Remember Me */}
             <div className="flex items-center justify-between mb-6">
               <label className="flex items-center">
                 <input
