@@ -93,24 +93,43 @@ export function AuthProvider({ children }) {
       redirectBasedOnRole();
       return;
     }
+
+    // Check role-based access
+    if (user && !checkRoleAccess(pathname, user.role)) {
+      // Redirect ke dashboard sesuai role
+      redirectBasedOnRole();
+    }
   };
 
   const checkRoleAccess = (path, userRole) => {
-    // Admin/Superadmin bisa akses admin routes
-    if (userRole === "superadmin" || userRole === "admin") {
+    // Superadmin bisa akses semua routes
+    if (userRole === "superadmin") {
+      if (path.startsWith("/superadmin")) return true;
       if (path.startsWith("/admin")) return true;
       if (path.startsWith("/user")) return false;
       if (path === "/") return false;
+      return true;
     }
 
-    // User biasa hanya bisa akses user routes
-    if (userRole === "user" || userRole === "guest") {
-      if (path.startsWith("/user")) return true;
-      if (path.startsWith("/admin")) return false;
+    // Admin bisa akses admin routes (tidak bisa akses superadmin)
+    if (userRole === "admin") {
+      if (path.startsWith("/superadmin")) return false;
+      if (path.startsWith("/admin")) return true;
+      if (path.startsWith("/user")) return false;
       if (path === "/") return false;
+      return true;
     }
 
-    return true;
+    // User biasa bisa akses user routes
+    if (userRole === "user") {
+      if (path.startsWith("/superadmin")) return false;
+      if (path.startsWith("/admin")) return false;
+      if (path.startsWith("/user")) return true;
+      if (path === "/") return false;
+      return true;
+    }
+
+    return false;
   };
 
   const redirectBasedOnRole = () => {
@@ -119,7 +138,9 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    if (user.role === "superadmin" || user.role === "admin") {
+    if (user.role === "superadmin") {
+      router.push("/superadmin/dashboard");
+    } else if (user.role === "admin") {
       router.push("/admin/dashboard");
     } else {
       router.push("/user/dashboard");

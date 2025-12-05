@@ -9,7 +9,7 @@ import {
   BarChart2,
   Hash,
 } from "lucide-react";
-import LayoutDashboard from "../componentsUser/Layout/LayoutDashboard";
+import LayoutDashboard from "../componentsSuperAdmin/Layout/LayoutDashboard";
 import Swal from "sweetalert2";
 import Image from "next/image";
 import * as LucideIcons from "lucide-react";
@@ -18,7 +18,7 @@ import ProtectedRoute from "../../components/ProtectedRoute";
 // IMPORT API CONFIGURATION
 import { API_ENDPOINTS, getIconUrl } from "../../../config/api";
 
-export default function AdminDashboard() {
+export default function SuperAdminDashboard() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [apps, setApps] = useState([]);
@@ -490,7 +490,7 @@ export default function AdminDashboard() {
   });
 
   return (
-    <ProtectedRoute allowedRoles={["guest", "user"]}>
+    <ProtectedRoute allowedRoles={["superadmin"]}>
       <LayoutDashboard>
         <div className="max-w-7xl mx-auto px-4 py-8 relative min-h-screen">
           {/* Background Logo Transparan */}

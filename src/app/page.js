@@ -32,10 +32,15 @@ export default function HomeRedirectPage() {
           window.history.replaceState({}, document.title, newUrl);
           
           // Redirect berdasarkan role
-          if (userData.role === "admin" || userData.role === "superadmin") {
+          if (userData.role === "superadmin") {
+            router.push("/superadmin/dashboard");
+          } else if (userData.role === "admin") {
             router.push("/admin/dashboard");
-          } else {
+          } else if (userData.role === "user") {
             router.push("/user/dashboard");
+          } else {
+            // Role tidak dikenal
+            window.location.href = "http://localhost:3000/login";
           }
         } catch (error) {
           console.error("Error processing redirect:", error);
@@ -48,46 +53,31 @@ export default function HomeRedirectPage() {
       const token = localStorage.getItem("token");
       const storedUser = localStorage.getItem("user");
       
-      // if (token && storedUser) {
-      //   try {
-      //     const userData = JSON.parse(storedUser);
+      if (token && storedUser) {
+        try {
+          const userData = JSON.parse(storedUser);
           
-      //     if (userData.role === "admin" || userData.role === "superadmin") {
-      //       router.push("/admin/dashboard");
-      //     } else {
-      //       router.push("/user/dashboard");
-      //     }
-      //   } catch (error) {
-      //     console.error("Error parsing user data:", error);
-      //     window.location.href = "http://localhost:3000/login";
-      //   }
-      // } else {
-      //   console.log("No token found, redirecting to Portal...");
-      //   window.location.href = "http://localhost:3000/login";
-      // }
-
-       if (token && storedUser) {
-      try {
-        const userData = JSON.parse(storedUser);
-        
-        // HANYA superadmin dan admin yang boleh masuk
-        if (userData.role === "admin" || userData.role === "superadmin") {
-          router.push("/admin/dashboard");
-        } else {
-          // Jika role bukan admin/superadmin, logout dan redirect ke portal
-          console.log("Invalid role. Redirecting to Portal...");
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
+          // Redirect berdasarkan role
+          if (userData.role === "superadmin") {
+            router.push("/superadmin/dashboard");
+          } else if (userData.role === "admin") {
+            router.push("/admin/dashboard");
+          } else if (userData.role === "user") {
+            router.push("/user/dashboard");
+          } else {
+            // Role tidak dikenal
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            window.location.href = "http://localhost:3000/login";
+          }
+        } catch (error) {
+          console.error("Error parsing user data:", error);
           window.location.href = "http://localhost:3000/login";
         }
-      } catch (error) {
-        console.error("Error parsing user data:", error);
+      } else {
+        console.log("No token found, redirecting to Portal...");
         window.location.href = "http://localhost:3000/login";
       }
-    } else {
-      console.log("No token found, redirecting to Portal...");
-      window.location.href = "http://localhost:3000/login";
-    }
     };
 
     checkAndRedirect();

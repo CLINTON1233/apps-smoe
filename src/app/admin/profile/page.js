@@ -17,9 +17,11 @@ import LayoutDashboard from "../componentsAdmin/Layout/LayoutDashboard";
 import Swal from "sweetalert2";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
-import ProtectedRoute from "../../components/ProtectedRoute";
-import API_BASE_URL, { API_ENDPOINTS } from "../../../config/api";
+import Image from "next/image"; // Import Image component
+import ProtectedRoute from "@/app/components/ProtectedRoute";
+
+// IMPORT API CONFIGURATION
+import { API_ENDPOINTS } from "../../../config/api";
 
 export default function AdminProfile() {
   const router = useRouter();
@@ -258,7 +260,7 @@ export default function AdminProfile() {
   }
 
   return (
-    <ProtectedRoute allowedRoles={["superadmin"]}>
+    <ProtectedRoute allowedRoles={["guest", "user"]}>
       <LayoutDashboard>
         {/* DARK MODE: Added dark background */}
         <div className="min-h-screen bg-gray-900 text-gray-100 relative">

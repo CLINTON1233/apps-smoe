@@ -130,15 +130,10 @@ export default function LayoutDashboard({ children }) {
   // Daftar navigasi
 // Update navItems di LayoutDashboard.js
 const navItems = [
- { href: "/superadmin/dashboard", label: "Dashboard", icon: DashboardIcon },
-  { href: "/superadmin/management-app-store", label: "App Store", icon: Store },
-  {
-    href: "/superadmin/management-categories",
-    label: "Categories",
-    icon: Package,
-  },
-  { href: "/superadmin/management-users", label: "Users", icon: Users },
-  { href: "/superadmin/profile", label: "Profile", icon: User },
+ { href: "/admin/dashboard", label: "Dashboard", icon: DashboardIcon },
+  { href: "/admin/management-app-store", label: "App Store", icon: Store },
+ 
+  { href: "/admin/profile", label: "Profile", icon: User },
 ];
 
 

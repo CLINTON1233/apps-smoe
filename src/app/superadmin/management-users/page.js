@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { Poppins } from "next/font/google";
 import Swal from "sweetalert2";
-import LayoutDashboard from "../componentsAdmin/Layout/LayoutDashboard";
+import LayoutDashboard from "../componentsSuperAdmin/Layout/LayoutDashboard";
 import Image from "next/image";
 import ProtectedRoute from "../../components/ProtectedRoute";
 import { API_ENDPOINTS } from "../../../config/api"; // Import konfigurasi API

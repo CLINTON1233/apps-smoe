@@ -13,10 +13,14 @@ export default function HomeRedirectPage() {
     if (user) {
       try {
         const userData = JSON.parse(user);
-        if (userData.role === "admin" || userData.role === "superadmin") {
+        if (userData.role === "superadmin") {
+          router.push("/superadmin/dashboard");
+        } else if (userData.role === "admin") {
           router.push("/admin/dashboard");
-        } else {
+        } else if (userData.role === "user") {
           router.push("/user/dashboard");
+        } else {
+          router.push("/login");
         }
       } catch (error) {
         router.push("/login");
