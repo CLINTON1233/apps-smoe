@@ -1,46 +1,93 @@
+// components/ProtectedRoute.js di AppsSMOE
 "use client";
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
-import { usePathname } from "next/navigation";
-import { useEffect } from "react";
 
 export default function ProtectedRoute({ children, allowedRoles = [] }) {
-  const { user, loading } = useAuth();
-  const pathname = usePathname();
+  const { user, loading, verifyToken } = useAuth();
+  const router = useRouter();
+  const [isVerified, setIsVerified] = useState(false);
 
-  // Show loading spinner
-  if (loading) {
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        
+        if (!token) {
+          console.log("No token found in localStorage");
+          
+          // Cek URL untuk token
+          const urlParams = new URLSearchParams(window.location.search);
+          const tokenFromUrl = urlParams.get("token");
+          
+          if (tokenFromUrl) {
+            console.log("Found token in URL, processing...");
+            // AuthContext akan handle ini
+            return;
+          }
+          
+          // Redirect ke Portal untuk login
+          const returnUrl = encodeURIComponent(window.location.href);
+          window.location.href = `http://localhost:3000/login?redirect=${returnUrl}`;
+          return;
+        }
+
+        // Verify token dengan Portal backend
+        const isValid = await verifyToken(token);
+        
+        if (!isValid) {
+          console.log("Token invalid, clearing storage");
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          
+          // Redirect ke Portal untuk login
+          const returnUrl = encodeURIComponent(window.location.href);
+          window.location.href = `http://localhost:3000/login?redirect=${returnUrl}`;
+          return;
+        }
+
+        setIsVerified(true);
+        
+        // Check role access
+        if (allowedRoles.length > 0 && user && !allowedRoles.includes(user.role)) {
+          router.push("/unauthorized");
+        }
+      } catch (error) {
+        console.error("Authentication check failed:", error);
+        
+        // Clear invalid tokens
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        
+        // Redirect ke Portal untuk login
+        const returnUrl = encodeURIComponent(window.location.href);
+        window.location.href = `http://localhost:3000/login?redirect=${returnUrl}`;
+      }
+    };
+
+    if (!loading) {
+      if (!user) {
+        checkAuth();
+      } else {
+        setIsVerified(true);
+      }
+    }
+  }, [user, loading, allowedRoles, router, verifyToken]);
+
+  if (loading || !isVerified) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-900">
         <div className="flex flex-col items-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-500"></div>
-          <span className="mt-4 text-sm text-gray-300">Loading...</span>
+          <span className="mt-4 text-sm text-gray-300">
+            Verifying session from Portal...
+          </span>
         </div>
       </div>
     );
   }
 
-  // If no user (not logged in), redirect will be handled by AuthContext
-  if (!user) {
-    return null;
-  }
-
-  // Check if user has required role
-  if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
-        <div className="text-center p-8 bg-gray-800 rounded-2xl border border-gray-700 max-w-md">
-          <h1 className="text-2xl font-bold text-red-400 mb-4">Access Denied</h1>
-          <p className="text-gray-300 mb-6">
-            You don't have permission to access this page.
-          </p>
-          <p className="text-sm text-gray-400">
-            Your role: <span className="text-blue-400 font-semibold">{user.role}</span>
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  return children;
+  return <>{children}</>;
 }

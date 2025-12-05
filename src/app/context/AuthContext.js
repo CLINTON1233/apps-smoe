@@ -1,3 +1,4 @@
+// context/AuthContext.js di AppsSMOE
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
@@ -16,7 +17,6 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    // Check authentication on route change
     if (!loading) {
       checkRouteAccess();
     }
@@ -24,10 +24,46 @@ export function AuthProvider({ children }) {
 
   const checkAuth = () => {
     try {
+      // Cek apakah ada token di URL (datang dari Portal)
+      const urlParams = new URLSearchParams(window.location.search);
+      const tokenFromUrl = urlParams.get("token");
+      const userFromUrl = urlParams.get("user");
+
+      // Jika ada token dari URL, simpan ke localStorage
+      if (tokenFromUrl && userFromUrl) {
+        console.log("📥 Token received from Portal URL");
+        
+        localStorage.setItem("token", tokenFromUrl);
+        localStorage.setItem("user", userFromUrl);
+        
+        try {
+          const userObj = JSON.parse(decodeURIComponent(userFromUrl));
+          userObj.token = tokenFromUrl;
+          setUser(userObj);
+          console.log("✅ User loaded from Portal URL");
+          
+          // Hapus parameter dari URL tanpa reload halaman
+          const newUrl = window.location.pathname;
+          window.history.replaceState({}, document.title, newUrl);
+          
+          setLoading(false);
+          return;
+        } catch (error) {
+          console.error("Error parsing user from URL:", error);
+        }
+      }
+
+      // Jika tidak ada di URL, coba dari localStorage
+      const token = localStorage.getItem("token");
       const storedUser = localStorage.getItem("user");
-      if (storedUser) {
+
+      if (token && storedUser) {
         const userObj = JSON.parse(storedUser);
+        userObj.token = token;
         setUser(userObj);
+        console.log("✅ User loaded from localStorage:", userObj.email);
+      } else {
+        console.log("⚠️ No token found");
       }
     } catch (error) {
       console.error("Error checking auth:", error);
@@ -38,70 +74,48 @@ export function AuthProvider({ children }) {
   };
 
   const checkRouteAccess = () => {
-    // Public routes (bisa diakses tanpa login)
-    const publicRoutes = ["/login", "/"];
+    const publicRoutes = ["/", "/verify-token"];
 
     if (loading) return;
 
-    // Jika belum login dan mencoba akses protected route
+    // Jika user belum login dan mencoba akses protected route
     if (!user && !publicRoutes.includes(pathname)) {
-      router.push("/login");
+      console.log("🔒 No user, checking if we can get token from Portal...");
+      
+      // Coba redirect ke Portal untuk login
+      const returnUrl = encodeURIComponent(window.location.href);
+      window.location.href = `http://localhost:3000/login?redirect=${returnUrl}`;
       return;
     }
 
-    // Jika sudah login tapi mencoba akses login page
-    if (user && pathname === "/login") {
+    // Jika user sudah login tapi di root path, redirect ke dashboard sesuai role
+    if (user && pathname === "/") {
       redirectBasedOnRole();
       return;
-    }
-
-    // Check role-based access untuk protected routes
-    if (user && !checkRoleAccess(pathname, user.role)) {
-      // Redirect ke dashboard sesuai role
-      redirectBasedOnRole();
     }
   };
 
   const checkRoleAccess = (path, userRole) => {
-    // Superadmin dan admin bisa akses semua routes admin
+    // Admin/Superadmin bisa akses admin routes
     if (userRole === "superadmin" || userRole === "admin") {
-      // Hanya boleh akses routes admin
-      if (path.startsWith("/admin")) {
-        return true;
-      }
-      // Jika mencoba akses user routes, redirect ke admin
-      if (path.startsWith("/user")) {
-        return false;
-      }
-      // Untuk routes root, arahkan ke admin dashboard
-      if (path === "/") {
-        return false;
-      }
+      if (path.startsWith("/admin")) return true;
+      if (path.startsWith("/user")) return false;
+      if (path === "/") return false;
     }
 
     // User biasa hanya bisa akses user routes
-  if (userRole === "user" || userRole === "guest") {
-      // Hanya boleh akses routes user
-      if (path.startsWith("/user")) {
-        return true;
-      }
-      // Jika mencoba akses admin routes, redirect ke user dashboard
-      if (path.startsWith("/admin")) {
-        return false;
-      }
-      // Untuk routes root, arahkan ke user dashboard
-      if (path === "/") {
-        return false;
-      }
+    if (userRole === "user" || userRole === "guest") {
+      if (path.startsWith("/user")) return true;
+      if (path.startsWith("/admin")) return false;
+      if (path === "/") return false;
     }
 
-    // Default: allow access
     return true;
   };
 
   const redirectBasedOnRole = () => {
     if (!user) {
-      router.push("/login");
+      window.location.href = "http://localhost:3000/login";
       return;
     }
 
@@ -113,16 +127,36 @@ export function AuthProvider({ children }) {
   };
 
   const login = (userData) => {
-    localStorage.setItem("user", JSON.stringify(userData));
-    setUser(userData);
-    redirectBasedOnRole();
+    console.log("Login should be done from Portal");
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
     sessionStorage.removeItem("loginSuccessShown");
-    router.push("/login");
+    
+    // Redirect ke Portal untuk login
+    window.location.href = "http://localhost:3000/login";
+  };
+
+  const verifyToken = async (token) => {
+    try {
+      const response = await fetch("http://localhost:4000/users/verify-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.status === "valid";
+      }
+      return false;
+    } catch (error) {
+      console.error("Token verification failed:", error);
+      return false;
+    }
   };
 
   const value = {
@@ -130,6 +164,7 @@ export function AuthProvider({ children }) {
     login,
     logout,
     loading,
+    verifyToken,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

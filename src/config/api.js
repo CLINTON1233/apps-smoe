@@ -1,29 +1,33 @@
 // config/api.js
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const PORTAL_API_URL = process.env.NEXT_PUBLIC_PORTAL_API_URL || "http://localhost:4000";
+const SMOE_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export const API_ENDPOINTS = {
-  // Auth
-  LOGIN: `${API_BASE_URL}/auth/login`,
-  REGISTER: `${API_BASE_URL}/users/register`,
+  // ENDPOINT UNTUK VERIFIKASI TOKEN PORTAL
+  VERIFY_TOKEN: `${PORTAL_API_URL}/users/verify-token`,
+  
+  // Auth SMOE Apps 
+  LOGIN: `${SMOE_API_URL}/auth/login`,
+  REGISTER: `${SMOE_API_URL}/users/register`,
 
   // Users
-  USERS: `${API_BASE_URL}/users`,
-  USER_BY_ID: (id) => `${API_BASE_URL}/users/${id}`,
+  USERS: `${SMOE_API_URL}/users`,
+  USER_BY_ID: (id) => `${SMOE_API_URL}/users/${id}`,
 
   // Categories
-  CATEGORIES: `${API_BASE_URL}/categories`,
-  CATEGORY_BY_ID: (id) => `${API_BASE_URL}/categories/${id}`,
+  CATEGORIES: `${SMOE_API_URL}/categories`,
+  CATEGORY_BY_ID: (id) => `${SMOE_API_URL}/categories/${id}`,
 
   // Applications
-  APPLICATIONS: `${API_BASE_URL}/applications`,
-  APPLICATION_BY_ID: (id) => `${API_BASE_URL}/applications/${id}`,
-  APPLICATION_DOWNLOAD: (id) => `${API_BASE_URL}/applications/${id}/download`,
+  APPLICATIONS: `${SMOE_API_URL}/applications`,
+  APPLICATION_BY_ID: (id) => `${SMOE_API_URL}/applications/${id}`,
+  APPLICATION_DOWNLOAD: (id) => `${SMOE_API_URL}/applications/${id}/download`,
 
   // Icons
-  ICONS: `${API_BASE_URL}/icons`,
+  ICONS: `${SMOE_API_URL}/icons`,
 
   // Uploads
-  UPLOADS: `${API_BASE_URL}/uploads`,
+  UPLOADS: `${SMOE_API_URL}/uploads`,
 };
 
 // Helper function untuk build upload URL
@@ -34,7 +38,7 @@ export const getUploadUrl = (filename) => {
 // Helper function untuk build icon URL (untuk custom icons)
 export const getIconUrl = (filePath) => {
   if (!filePath) return null;
-  return `${API_BASE_URL}/${filePath}`;
+  return `${SMOE_API_URL}/${filePath}`;
 };
 
-export default API_BASE_URL;
+export default SMOE_API_URL;

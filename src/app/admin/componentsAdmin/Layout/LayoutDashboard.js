@@ -29,7 +29,7 @@ export default function LayoutDashboard({ children }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [userData, setUserData] = useState(null);
-    const { user, logout } = useAuth(); // Get user and logout from context
+    const { user, logout } = useAuth(); 
   const pathname = usePathname();
 
   // Close dropdown ketika klik di luar
@@ -74,7 +74,7 @@ export default function LayoutDashboard({ children }) {
     cancelButtonColor: "#ef4444",
   };
 
-   const handleLogout = () => {
+    const handleLogout = () => {
     Swal.fire({
       title: "Confirm Logout",
       text: "Are you sure you want to logout?",
@@ -90,7 +90,7 @@ export default function LayoutDashboard({ children }) {
       cancelButtonColor: "#ef4444",
     }).then((result) => {
       if (result.isConfirmed) {
-        logout(); // Use logout from context
+        logout(); // Panggil logout dari context
         
         Swal.fire({
           title: "Logged Out!",
@@ -128,39 +128,55 @@ export default function LayoutDashboard({ children }) {
   };
 
   // Daftar navigasi
-  const navItems = [
-    { href: "/admin/dashboard", label: "Dashboard", icon: DashboardIcon },
-    { href: "/admin/management-app-store", label: "App Store", icon: Store },
-    {
-      href: "/admin/management-categories",
-      label: "Categories",
-      icon: Package,
-    },
-    { href: "/admin/management-users", label: "Users", icon: Users },
-    { href: "/admin/profile", label: "Profile", icon: User },
-  ];
+// Update navItems di LayoutDashboard.js
+const navItems = [
+ { href: "/superadmin/dashboard", label: "Dashboard", icon: DashboardIcon },
+  { href: "/superadmin/management-app-store", label: "App Store", icon: Store },
+  {
+    href: "/superadmin/management-categories",
+    label: "Categories",
+    icon: Package,
+  },
+  { href: "/superadmin/management-users", label: "Users", icon: Users },
+  { href: "/superadmin/profile", label: "Profile", icon: User },
+];
 
-  // Format role untuk display
-  const formatRole = (role) => {
-    const roleMap = {
-      admin: "Admin",
-      superadmin: "Superadmin",
-      guest: "Guest",
-      user: "Regular User",
-    };
-    return roleMap[role] || role;
-  };
 
-  // Get role color
-  const getRoleColor = (role) => {
-    const colorMap = {
-      admin: "text-green-400 bg-green-900/30",
-      superadmin: "text-purple-400 bg-purple-900/30",
-      guest: "text-blue-400 bg-blue-900/30",
-      user: "text-gray-400 bg-gray-700",
-    };
-    return colorMap[role] || "text-gray-400 bg-gray-700";
+const formatRole = (role) => {
+  const roleMap = {
+    admin: "Admin",
+    superadmin: "Superadmin",
   };
+  return roleMap[role] || "Invalid Role";
+};
+
+const getRoleColor = (role) => {
+  const colorMap = {
+    admin: "text-green-400 bg-green-900/30",
+    superadmin: "text-purple-400 bg-purple-900/30",
+  };
+  return colorMap[role] || "text-red-400 bg-red-900/30";
+};
+  // const formatRole = (role) => {
+  //   const roleMap = {
+  //     admin: "Admin",
+  //     superadmin: "Superadmin",
+  //     guest: "Guest",
+  //     user: "Regular User",
+  //   };
+  //   return roleMap[role] || role;
+  // };
+
+  // // Get role color
+  // const getRoleColor = (role) => {
+  //   const colorMap = {
+  //     admin: "text-green-400 bg-green-900/30",
+  //     superadmin: "text-purple-400 bg-purple-900/30",
+  //     guest: "text-blue-400 bg-blue-900/30",
+  //     user: "text-gray-400 bg-gray-700",
+  //   };
+  //   return colorMap[role] || "text-gray-400 bg-gray-700";
+  // };
 
   return (
     <div

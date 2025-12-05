@@ -14,15 +14,18 @@ import Swal from "sweetalert2";
 import Image from "next/image";
 import * as LucideIcons from "lucide-react";
 import ProtectedRoute from "../../components/ProtectedRoute";
+import { useAuth } from "../../context/AuthContext";
 import API_BASE_URL, { API_ENDPOINTS, getIconUrl } from "../../../config/api";
 
 export default function AdminDashboard() {
+  const { user, logout } = useAuth();
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [apps, setApps] = useState([]);
   const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [icons, setIcons] = useState([]); // STATE UNTUK ICONS
+  const [icons, setIcons] = useState([]);
+  // const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // Format file size
   const formatFileSize = (bytes) => {
@@ -34,38 +37,21 @@ export default function AdminDashboard() {
     return (bytes / (1024 * 1024 * 1024)).toFixed(1) + " GB";
   };
 
-  // ============================================================
-  // AMBIL LOGIC AppIcon DARI MANAGEMENT APPSTORE
-  // ============================================================
+  // Handle logout
+  const handleLogout = () => {
+    logout();
+  };
 
-  // AppIcon Component untuk menampilkan icon
+  // AppIcon Component
   const AppIcon = ({ app, className = "w-14 h-14" }) => {
     const icon = app.icon || app.iconObject;
 
-    console.log("🔍 AppIcon Debug (Dashboard):", {
-      appId: app.id,
-      appTitle: app.title,
-      iconId: app.icon_id,
-      iconData: icon,
-      hasIcon: !!icon,
-    });
-
-    // Jika icon adalah object lengkap (dari backend relations)
+    // Jika icon adalah object lengkap
     if (icon && typeof icon === "object") {
       const iconKey = icon.icon_key;
 
-      // Debug info
-      console.log("📦 Icon object found (Dashboard):", {
-        id: icon.id,
-        name: icon.name,
-        icon_key: iconKey,
-        type: icon.type,
-        file_path: icon.file_path,
-      });
-
       // Cek jika ini custom icon (file)
       if (icon.type === "custom" && icon.file_path) {
-        console.log("🖼️ Rendering custom icon (Dashboard):", icon.file_path);
         return (
           <img
             src={getIconUrl(icon.file_path)}
@@ -79,10 +65,8 @@ export default function AdminDashboard() {
               padding: "4px",
             }}
             onError={(e) => {
-              console.error("❌ Failed to load custom icon:", icon.file_path);
               // Fallback ke default icon
               e.target.style.display = "none";
-              // Show fallback
               const fallback = document.createElement("div");
               fallback.className = `${className} bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl flex items-center justify-center text-white font-extrabold text-xl shadow-lg`;
               fallback.innerHTML = `<span>${
@@ -96,11 +80,7 @@ export default function AdminDashboard() {
 
       // Gunakan Lucide icon jika icon_key valid
       if (iconKey) {
-        // Cari nama icon yang tepat di LucideIcons
         const iconName = iconKey;
-        console.log("🔤 Looking for Lucide icon (Dashboard):", iconName);
-
-        // Coba beberapa format
         const possibleNames = [
           iconName,
           iconName.charAt(0).toUpperCase() + iconName.slice(1),
@@ -117,7 +97,6 @@ export default function AdminDashboard() {
         for (const name of possibleNames) {
           const IconComponent = LucideIcons[name];
           if (IconComponent) {
-            console.log("✅ Found Lucide icon (Dashboard):", name);
             return (
               <div
                 className={`${className} bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl flex items-center justify-center p-3`}
@@ -127,32 +106,11 @@ export default function AdminDashboard() {
             );
           }
         }
-
-        console.log(
-          "❌ No Lucide icon found for any variation of (Dashboard):",
-          iconName
-        );
       }
     }
 
-    // Jika ada icon_id tapi tidak ada icon object, cari di icons list
-    if (app.icon_id && !icon) {
-      console.log(
-        "🔍 Icon ID exists but no object, searching in icons list (Dashboard)..."
-      );
-      const foundIcon = icons.find((i) => i.id === app.icon_id);
-      if (foundIcon) {
-        console.log("✅ Found icon in icons list (Dashboard):", foundIcon.name);
-        // Rekursif panggil diri sendiri dengan icon yang ditemukan
-        return (
-          <AppIcon app={{ ...app, icon: foundIcon }} className={className} />
-        );
-      }
-    }
-
-    // Jika icon hanya berupa string (icon_key langsung dari backend lama)
+    // Jika icon hanya berupa string
     if (app.icon && typeof app.icon === "string") {
-      console.log("📝 Icon is string (Dashboard):", app.icon);
       const IconComponent = LucideIcons[app.icon];
       if (IconComponent) {
         return (
@@ -165,58 +123,7 @@ export default function AdminDashboard() {
       }
     }
 
-    // Fallback ke icon default berdasarkan category
-    console.log("🔄 Falling back to default icon (Dashboard)");
-
-    // Coba icon berdasarkan category
-    if (app.category?.name) {
-      const category = app.category.name.toLowerCase();
-      const categoryIcons = {
-        design: "Palette",
-        development: "Code",
-        productivity: "CheckSquare",
-        communication: "MessageSquare",
-        finance: "DollarSign",
-        graphics: "Image",
-        media: "Video",
-        education: "BookOpen",
-        utility: "Settings",
-        game: "Gamepad",
-        business: "Briefcase",
-        health: "Heart",
-        software: "Cpu",
-        web: "Globe",
-        mobile: "Smartphone",
-        desktop: "Monitor",
-        security: "Shield",
-        database: "Database",
-        cloud: "Cloud",
-        network: "Wifi",
-      };
-
-      for (const [cat, iconName] of Object.entries(categoryIcons)) {
-        if (category.includes(cat)) {
-          const IconComponent = LucideIcons[iconName];
-          if (IconComponent) {
-            console.log(
-              `🎯 Using category icon for ${category} (Dashboard): ${iconName}`
-            );
-            return (
-              <div
-                className={`${className} bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl flex items-center justify-center p-3`}
-              >
-                <IconComponent className="w-8 h-8 text-white" />
-              </div>
-            );
-          }
-        }
-      }
-    }
-
-    // Ultimate fallback - icon huruf pertama dengan background gradient
-    console.log(
-      "⚠️ Ultimate fallback - showing default letter icon (Dashboard)"
-    );
+    // Fallback ke icon huruf pertama
     const colorMaps = [
       "bg-gradient-to-br from-gray-800 to-gray-900",
       "bg-gradient-to-br from-gray-700 to-gray-800",
@@ -233,14 +140,12 @@ export default function AdminDashboard() {
     );
   };
 
-  // Get icon data for app (helper function)
+  // Get icon data for app
   const getAppIconData = (app) => {
-    // Pertama, coba gunakan icon dari relation (jika ada)
     if (app.icon && typeof app.icon === "object") {
       return app.icon;
     }
 
-    // Jika tidak ada relation, cari di icons list
     if (app.icon_id) {
       const foundIcon = icons.find((icon) => icon.id === app.icon_id);
       if (foundIcon) {
@@ -250,10 +155,6 @@ export default function AdminDashboard() {
 
     return null;
   };
-
-  // ============================================================
-  // END OF ICON LOGIC
-  // ============================================================
 
   // SweetAlert Dark Theme
   const swalDarkConfig = {
@@ -267,37 +168,30 @@ export default function AdminDashboard() {
   const fetchApplications = async () => {
     setIsLoading(true);
     try {
-      console.log("=== FETCHING APPLICATIONS (Dashboard) ===");
-      const response = await fetch(API_ENDPOINTS.APPLICATIONS);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.log("No token found, redirecting to Portal...");
+        window.location.href = "http://localhost:3000/login";
+        return;
+      }
+
+      const response = await fetch(API_ENDPOINTS.APPLICATIONS, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
 
       if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
 
       const result = await response.json();
 
-      // Debug: Periksa data aplikasi
-      if (result.data && Array.isArray(result.data)) {
-        console.log(`Total applications: ${result.data.length}`);
-        result.data.forEach((app, index) => {
-          console.log(`\nApp ${index + 1} (Dashboard):`, {
-            id: app.id,
-            title: app.title,
-            icon_id: app.icon_id,
-            hasIcon: !!app.icon,
-            iconData: app.icon,
-            iconKey: app.icon?.icon_key,
-            iconType: app.icon?.type,
-          });
-        });
-      }
-
       if (result.status === "success") {
         setApps(result.data);
-        console.log("Applications updated in state (Dashboard)");
       } else {
         throw new Error(result.message || "Unknown error occurred");
       }
     } catch (error) {
-      console.error("Error fetching applications (Dashboard):", error);
+      console.error("Error fetching applications:", error);
       Swal.fire({
         title: "Error",
         text: `Failed to load applications: ${error.message}`,
@@ -312,7 +206,12 @@ export default function AdminDashboard() {
   // Fetch categories
   const fetchCategories = async () => {
     try {
-      const response = await fetch(API_ENDPOINTS.CATEGORIES);
+      const token = localStorage.getItem("token");
+      const response = await fetch(API_ENDPOINTS.CATEGORIES, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
       if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
 
       const result = await response.json();
@@ -324,55 +223,74 @@ export default function AdminDashboard() {
     }
   };
 
-  // Fetch icons (untuk backup jika icon tidak ada di relation)
+  // Fetch icons
   const fetchIcons = async () => {
     try {
-      console.log("Fetching icons from (Dashboard):", API_ENDPOINTS.ICONS);
-      const response = await fetch(API_ENDPOINTS.ICONS);
+      const token = localStorage.getItem("token");
+      const response = await fetch(API_ENDPOINTS.ICONS, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const result = await response.json();
-      console.log("=== ICONS DATA (Dashboard) ===", result);
-
       if (result.status === "success") {
         setIcons(result.data || []);
-        console.log(
-          "Total icons loaded (Dashboard):",
-          result.data?.length || 0
-        );
-
-        // Debug: Periksa beberapa icon
-        if (result.data && Array.isArray(result.data)) {
-          result.data.slice(0, 3).forEach((icon, index) => {
-            console.log(`Icon ${index} (Dashboard):`, {
-              id: icon.id,
-              name: icon.name,
-              icon_key: icon.icon_key,
-              type: icon.type,
-            });
-          });
-        }
       }
     } catch (error) {
-      console.error("Error fetching icons (Dashboard):", error);
+      console.error("Error fetching icons:", error);
     }
   };
 
   useEffect(() => {
+    // Check if user is logged in from Portal
+    const token = localStorage.getItem("token");
+    if (!token) {
+      window.location.href = "http://localhost:3000/login";
+      return;
+    }
+
     fetchApplications();
     fetchCategories();
-    fetchIcons(); // Fetch icons untuk backup
+    fetchIcons();
   }, []);
 
-  // ============================================================
-  // DOWNLOAD HANDLER - DIAMBIL DARI MANAGEMENT APPSTORE
-  // ============================================================
+  // Handle application click with token
+  const handleAppClick = (app) => {
+    const token = localStorage.getItem("token");
+    const userData = localStorage.getItem("user");
+
+    if (!token) {
+      Swal.fire({
+        title: "Session Expired",
+        text: "Please login again from Portal",
+        icon: "warning",
+        ...swalDarkConfig,
+      }).then(() => {
+        window.location.href = "http://localhost:3000/login";
+      });
+      return;
+    }
+
+    // If app has URL, open with token
+    if (app.url) {
+      const urlWithToken = `${app.url}${app.url.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}&user=${encodeURIComponent(userData || "")}`;
+      window.open(urlWithToken, "_blank");
+    } else if (app.file_name) {
+      // If it's a downloadable app
+      handleDownload(app);
+    }
+  };
+
+  // Handle download
   const handleDownload = async (app) => {
     try {
-      // Show loading
+      const token = localStorage.getItem("token");
+      
       Swal.fire({
         title: "Preparing Download...",
         text: "Please wait while we prepare your file",
@@ -384,16 +302,13 @@ export default function AdminDashboard() {
         },
       });
 
-      console.log("Starting download for app:", app);
-
       const response = await fetch(API_ENDPOINTS.APPLICATION_DOWNLOAD(app.id), {
         method: "GET",
         headers: {
-          Accept: "application/octet-stream",
+          "Accept": "application/octet-stream",
+          "Authorization": `Bearer ${token}`,
         },
       });
-
-      console.log("Download response status:", response.status);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
@@ -404,19 +319,11 @@ export default function AdminDashboard() {
       }
 
       const blob = await response.blob();
-      console.log("Blob received, size:", blob.size);
-
-      if (blob.size === 0) {
-        throw new Error("Downloaded file is empty");
-      }
-
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.style.display = "none";
       a.href = url;
-
-      const fileName = app.file_name || `application_${app.id}.download`;
-      a.download = fileName;
+      a.download = app.file_name || `application_${app.id}.download`;
 
       document.body.appendChild(a);
       a.click();
@@ -428,17 +335,12 @@ export default function AdminDashboard() {
 
       Swal.fire({
         title: "Download Started!",
-        text: `"${fileName}" is being downloaded to your computer.`,
+        text: `"${a.download}" is being downloaded to your computer.`,
         icon: "success",
         confirmButtonColor: "#3b82f6",
         background: "#1f2937",
         color: "#f9fafb",
       });
-
-      // Refresh data setelah download
-      setTimeout(() => {
-        fetchApplications();
-      }, 1000);
     } catch (error) {
       console.error("Download error:", error);
       Swal.close();
@@ -446,10 +348,9 @@ export default function AdminDashboard() {
       let errorMessage = `Failed to download file: ${error.message}`;
 
       if (error.message.includes("404")) {
-        errorMessage =
-          "File not found on server. Please contact administrator.";
+        errorMessage = "File not found on server.";
       } else if (error.message.includes("empty")) {
-        errorMessage = "Downloaded file is empty. The file might be corrupted.";
+        errorMessage = "Downloaded file is empty.";
       }
 
       Swal.fire({
@@ -463,13 +364,13 @@ export default function AdminDashboard() {
     }
   };
 
-  // CATEGORY LIST
+  // Filter categories
   const appCategories = [
     "All",
     ...new Set(apps.map((app) => app.category?.name).filter((name) => name)),
   ];
 
-  // FILTER APPS
+  // Filter apps
   const filteredApps = apps.filter((app) => {
     const appCategoryName = app.category?.name || "";
     const search = searchQuery.toLowerCase();
@@ -486,7 +387,7 @@ export default function AdminDashboard() {
   });
 
   return (
-    <ProtectedRoute allowedRoles={["admin", "superadmin"]}>
+    <ProtectedRoute allowedRoles={["superadmin"]}>
       <LayoutDashboard>
         <div className="max-w-7xl mx-auto px-4 py-8 relative min-h-screen">
           {/* Background Logo Transparan */}
@@ -504,15 +405,34 @@ export default function AdminDashboard() {
 
           {/* Content */}
           <div className="relative z-10">
-            {/* HEADER */}
-            <div className="mb-8">
-              <h1 className="text-2xl font-bold text-white">
-                Seatrium Applications Dashboard
-              </h1>
-              <p className="text-gray-400 mt-1 text-base">
+            {/* HEADER WITH LOGOUT */}
+            <div className="flex justify-between items-center mb-8">
+              <div>
+                <h1 className="text-2xl font-bold text-white">
+                  Seatrium Applications Management Dashboard
+                </h1>
+                <p className="text-gray-400 mt-1 text-base">
+                  Welcome, {user?.nama } 
+                 <p className="text-gray-400 mt-1 text-base">
                 Manage and review all your application data here.
               </p>
+                </p>
+              </div>
+              
+              {/* <div className="flex items-center gap-3">
+                <div className="text-sm bg-blue-600 px-3 py-1 rounded-full">
+                  Portal User
+                </div>
+                <button
+                  onClick={() => setShowLogoutModal(true)}
+                  className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition text-sm"
+                >
+                  Logout
+                </button>
+              </div> */}
             </div>
+
+            
 
             {/* SEARCH BAR */}
             <div className="mb-6 bg-gray-800 p-4 rounded-xl border border-gray-700">
@@ -523,7 +443,7 @@ export default function AdminDashboard() {
                 />
                 <input
                   type="text"
-                  placeholder="Search apps by name or category..."
+                  placeholder="Search SMOE apps by name or category..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-11 pr-4 py-2.5 bg-gray-700 text-white placeholder-gray-400 rounded-full border border-gray-600 focus:ring-2 focus:ring-blue-500 text-sm"
@@ -534,13 +454,10 @@ export default function AdminDashboard() {
             {/* CATEGORY FILTER */}
             <div className="mb-8">
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                {/* Label */}
                 <div className="flex items-center gap-2 text-gray-300 text-sm">
                   <Filter size={18} className="text-blue-400" />
                   <span className="font-semibold">Filter Category:</span>
                 </div>
-
-                {/* Category Buttons */}
                 <div className="flex flex-wrap gap-2">
                   {appCategories.map((category) => (
                     <button
@@ -564,7 +481,7 @@ export default function AdminDashboard() {
               <div className="flex flex-col justify-center items-center py-20 bg-gray-800 rounded-xl">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-500"></div>
                 <span className="mt-4 text-sm text-gray-300">
-                  Loading applications...
+                  Loading smoe applications...
                 </span>
               </div>
             ) : (
@@ -577,29 +494,30 @@ export default function AdminDashboard() {
                     return (
                       <div
                         key={app.id}
-                        className="bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-lg hover:shadow-xl hover:border-gray-600 transition-all duration-300"
+                        className="bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-lg hover:shadow-xl hover:border-gray-600 transition-all duration-300 relative group"
                       >
-                        <div className="flex flex-col items-center mb-4">
-                          {/* GUNAKAN AppIcon COMPONENT */}
-                          <AppIcon app={app} className="w-14 h-14" />
+                        {/* CLICKABLE AREA - MENGIRIM TOKEN KE SMOE APPS */}
+                        <div
+                          className="absolute inset-0 z-0 cursor-pointer"
+                          onClick={() => handleAppClick(app)}
+                        />
 
+                        <div className="flex flex-col items-center mb-4 relative z-10">
+                          <AppIcon app={app} className="w-14 h-14" />
                           <h3 className="text-base font-bold text-white mt-3 text-center">
                             {app.title}
                           </h3>
                         </div>
 
-                        <p className="text-sm text-gray-300 text-center mb-4 h-10">
-                          {app.description || "No description available"}
+                        <p className="text-sm text-gray-300 text-center mb-4 h-10 relative z-10">
+                          {app.description || "SMOE Application"}
                         </p>
 
-                        <div className="flex flex-wrap justify-center gap-3 mb-4 pt-3 border-t border-gray-700">
-                          {/* VERSION BADGE - NO BACKGROUND */}
+                        <div className="flex flex-wrap justify-center gap-3 mb-4 pt-3 border-t border-gray-700 relative z-10">
                           <span className="flex items-center text-sm text-white">
                             <Hash size={13} className="mr-2 text-gray-400" />
                             Version: {app.version || "N/A"}
                           </span>
-
-                          {/* FILE SIZE BADGE - NO BACKGROUND */}
                           <span className="flex items-center text-sm text-white">
                             <Download
                               size={13}
@@ -607,14 +525,12 @@ export default function AdminDashboard() {
                             />
                             Size: {formatFileSize(app.file_size)}
                           </span>
-
-                          {/* CATEGORY BADGE - NO BACKGROUND */}
                           <span className="text-sm text-white">
-                            {app.category?.name || "Uncategorized"}
+                            {app.category?.name || "SMOE"}
                           </span>
                         </div>
 
-                        <div className="flex justify-between text-sm border-t border-gray-700 pt-4">
+                        <div className="flex justify-between text-sm border-t border-gray-700 pt-4 relative z-10">
                           <span className="flex items-center text-white">
                             <BarChart2
                               size={14}
@@ -633,11 +549,14 @@ export default function AdminDashboard() {
                           </span>
                         </div>
 
-                        {/* DOWNLOAD BUTTON - MENGGUNAKAN FUNGSI YANG BARU */}
+                        {/* DOWNLOAD BUTTON - DITIMPA OLEH CLICKABLE AREA */}
                         <button
-                          onClick={() => handleDownload(app)}
+                          onClick={(e) => {
+                            e.stopPropagation(); // Hindari trigger clickable area
+                            handleDownload(app);
+                          }}
                           disabled={!app.file_name}
-                          className={`w-full flex items-center justify-center gap-2 px-4 py-3 text-white rounded-xl mt-4 text-sm font-semibold transition-all ${
+                          className={`w-full flex items-center justify-center gap-2 px-4 py-3 text-white rounded-xl mt-4 text-sm font-semibold transition-all relative z-10 ${
                             app.file_name
                               ? "bg-blue-600 hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/25"
                               : "bg-gray-700 cursor-not-allowed text-gray-400 border border-gray-600"
@@ -648,6 +567,11 @@ export default function AdminDashboard() {
                             ? "Download Application"
                             : "File Not Available"}
                         </button>
+
+                        {/* INDICATOR THAT THIS IS A SMOE APP */}
+                        <div className="absolute top-2 right-2 bg-purple-600 text-white text-xs px-2 py-1 rounded-full font-semibold z-10">
+                          SMOE
+                        </div>
                       </div>
                     );
                   })}
@@ -658,25 +582,52 @@ export default function AdminDashboard() {
                   <div className="text-center py-20 bg-gray-800 rounded-xl border border-gray-700 mt-2">
                     <FileText className="w-14 h-14 mx-auto mb-4 text-gray-600" />
                     <p className="text-base font-semibold text-white">
-                      No applications found
+                      No SMOE applications found
                     </p>
                     <p className="text-sm mt-2 text-gray-400 max-w-md mx-auto">
                       {searchQuery || activeCategory !== "All"
                         ? `No results for "${searchQuery}" in ${activeCategory}. Try different keywords.`
-                        : "Please add new applications in the Applications Management menu."}
+                        : "No SMOE applications available."}
                     </p>
                   </div>
                 )}
 
                 {/* FOOTER SUMMARY */}
                 <p className="text-center text-gray-400 mt-10 text-sm">
-                  Displaying {filteredApps.length} of {apps.length}{" "}
-                  applications.
+                  Displaying {filteredApps.length} of {apps.length} SMOE applications.
                 </p>
               </>
             )}
           </div>
         </div>
+
+        {/* Logout Modal
+        {showLogoutModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-gray-800 rounded-xl p-8 w-full max-w-md">
+              <h3 className="text-xl font-semibold mb-4">Confirm Logout</h3>
+              <p className="text-gray-300 mb-6">
+                You will be redirected to the Portal login page. 
+                Are you sure you want to logout?
+              </p>
+              <div className="flex justify-end gap-4">
+                <button
+                  onClick={() => setShowLogoutModal(false)}
+                  className="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="px-6 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          </div>
+        )} */}
+
         {/* Footer */}
         <footer className="mt-12 py-6 text-center text-gray-400 text-sm border-t border-gray-700/50 relative z-10">
           <div className="max-w-6xl mx-auto px-4">
