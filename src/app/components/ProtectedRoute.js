@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
+import { getPortalLoginUrl } from "../../config/api";
 
 export default function ProtectedRoute({ children, allowedRoles = [] }) {
   const { user, loading, verifyToken } = useAuth();
@@ -14,56 +15,57 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
     const checkAuth = async () => {
       try {
         const token = localStorage.getItem("token");
-        
+
         if (!token) {
           console.log("No token found in localStorage");
-          
+
           // Cek URL untuk token
           const urlParams = new URLSearchParams(window.location.search);
           const tokenFromUrl = urlParams.get("token");
-          
+
           if (tokenFromUrl) {
             console.log("Found token in URL, processing...");
             // AuthContext akan handle ini
             return;
           }
-          
-          // Redirect ke Portal untuk login
-          const returnUrl = encodeURIComponent(window.location.href);
-          window.location.href = `http://localhost:3000/login?redirect=${returnUrl}`;
+
+          // Redirect ke Portal untuk login menggunakan helper function
+          window.location.href = getPortalLoginUrl(window.location.href);
           return;
         }
 
         // Verify token dengan Portal backend
         const isValid = await verifyToken(token);
-        
+
         if (!isValid) {
           console.log("Token invalid, clearing storage");
           localStorage.removeItem("token");
           localStorage.removeItem("user");
-          
-          // Redirect ke Portal untuk login
-          const returnUrl = encodeURIComponent(window.location.href);
-          window.location.href = `http://localhost:3000/login?redirect=${returnUrl}`;
+
+          // Redirect ke Portal untuk login menggunakan helper function
+          window.location.href = getPortalLoginUrl(window.location.href);
           return;
         }
 
         setIsVerified(true);
-        
+
         // Check role access
-        if (allowedRoles.length > 0 && user && !allowedRoles.includes(user.role)) {
+        if (
+          allowedRoles.length > 0 &&
+          user &&
+          !allowedRoles.includes(user.role)
+        ) {
           router.push("/unauthorized");
         }
       } catch (error) {
         console.error("Authentication check failed:", error);
-        
+
         // Clear invalid tokens
         localStorage.removeItem("token");
         localStorage.removeItem("user");
-        
-        // Redirect ke Portal untuk login
-        const returnUrl = encodeURIComponent(window.location.href);
-        window.location.href = `http://localhost:3000/login?redirect=${returnUrl}`;
+
+        // Redirect ke Portal untuk login menggunakan helper function
+        window.location.href = getPortalLoginUrl(window.location.href);
       }
     };
 

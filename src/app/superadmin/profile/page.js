@@ -20,11 +20,11 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import ProtectedRoute from "../../components/ProtectedRoute";
 import { API_ENDPOINTS } from "../../../config/api";
-import { useAuth } from "../../context/AuthContext"; // Import useAuth
+import { useAuth } from "../../context/AuthContext";
 
 export default function SuperAdminProfile() {
   const router = useRouter();
-  const { user: authUser, logout } = useAuth(); // Ambil user dari AuthContext
+  const { user: authUser, logout } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -42,6 +42,13 @@ export default function SuperAdminProfile() {
   });
 
   const [tempData, setTempData] = useState({ ...userData });
+
+  // Helper untuk mendapatkan URL Portal dari API_ENDPOINTS
+  const getPortalApiUrl = () => {
+    // Extract base URL dari endpoint VERIFY_TOKEN
+    const verifyTokenUrl = API_ENDPOINTS.VERIFY_TOKEN;
+    return verifyTokenUrl.replace("/users/verify-token", "");
+  };
 
   // Get current user from localStorage (datang dari Portal)
   const getCurrentUserFromPortal = () => {
@@ -76,7 +83,7 @@ export default function SuperAdminProfile() {
           color: "#f9fafb",
         }).then(() => {
           // Redirect ke Portal untuk login
-          window.location.href = "http://localhost:3000/login";
+          window.location.href = "/login"; // Gunakan relative path
         });
         return;
       }
@@ -121,9 +128,10 @@ export default function SuperAdminProfile() {
 
       const userId = portalUser.id;
       const token = localStorage.getItem("token");
+      const portalApiUrl = getPortalApiUrl();
 
-      // Update ke backend PORTAL (bukan AppsSMOE)
-      const response = await fetch(`http://localhost:4000/users/${userId}`, {
+      // Update ke backend PORTAL menggunakan config dari api.js
+      const response = await fetch(`${portalApiUrl}/users/${userId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -162,7 +170,7 @@ export default function SuperAdminProfile() {
     const portalUser = getCurrentUserFromPortal();
     if (!portalUser) {
       // Redirect ke Portal untuk login
-      window.location.href = "http://localhost:3000/login";
+      window.location.href = "/login"; // Gunakan relative path
       return;
     }
 
@@ -271,7 +279,6 @@ export default function SuperAdminProfile() {
   return (
     <ProtectedRoute allowedRoles={["superadmin"]}>
       <LayoutDashboard>
-        {/* DARK MODE: Added dark background */}
         <div className="min-h-screen bg-gray-900 text-gray-100 relative">
           {/* Background Logo Transparan */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -300,10 +307,6 @@ export default function SuperAdminProfile() {
               <p className="text-gray-400 text-sm">
                 Manage your account information and preferences
               </p>
-              {/* <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-blue-900/30 text-blue-300 text-xs rounded-full border border-blue-700/50">
-                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                Connected to Portal
-              </div> */}
             </div>
 
             {/* Profile Form Container */}
@@ -498,20 +501,10 @@ export default function SuperAdminProfile() {
                   </div>
                 </div>
               </div>
-
-              {/* Note */}
-              {/* <div className="mt-4 p-3 bg-blue-900/20 border border-blue-700/30 rounded-lg">
-                <p className="text-xs text-blue-300 text-center">
-                  <strong>Note:</strong> Profile data is managed through the
-                  Portal. Changes will be reflected across all connected
-                  applications.
-                </p>
-              </div> */}
             </div>
           </div>
 
           {/* Footer */}
-
           <footer className="mt-12 py-6 text-center text-gray-400 text-sm border-t border-gray-700/50 relative z-10">
             <div className="max-w-6xl mx-auto px-4">
               <p>IT Application Dashboard</p>

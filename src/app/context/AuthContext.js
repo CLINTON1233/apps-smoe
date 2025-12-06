@@ -1,8 +1,8 @@
-// context/AuthContext.js di AppsSMOE
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { PORTAL, PORTAL_API, getPortalLoginUrl } from "@/config/api";
 
 const AuthContext = createContext();
 
@@ -32,20 +32,20 @@ export function AuthProvider({ children }) {
       // Jika ada token dari URL, simpan ke localStorage
       if (tokenFromUrl && userFromUrl) {
         console.log("📥 Token received from Portal URL");
-        
+
         localStorage.setItem("token", tokenFromUrl);
         localStorage.setItem("user", userFromUrl);
-        
+
         try {
           const userObj = JSON.parse(decodeURIComponent(userFromUrl));
           userObj.token = tokenFromUrl;
           setUser(userObj);
           console.log("✅ User loaded from Portal URL");
-          
+
           // Hapus parameter dari URL tanpa reload halaman
           const newUrl = window.location.pathname;
           window.history.replaceState({}, document.title, newUrl);
-          
+
           setLoading(false);
           return;
         } catch (error) {
@@ -81,10 +81,10 @@ export function AuthProvider({ children }) {
     // Jika user belum login dan mencoba akses protected route
     if (!user && !publicRoutes.includes(pathname)) {
       console.log("🔒 No user, checking if we can get token from Portal...");
-      
+
       // Coba redirect ke Portal untuk login
       const returnUrl = encodeURIComponent(window.location.href);
-      window.location.href = `http://localhost:3000/login?redirect=${returnUrl}`;
+      window.location.href = getPortalLoginUrl(window.location.href);
       return;
     }
 
@@ -134,7 +134,7 @@ export function AuthProvider({ children }) {
 
   const redirectBasedOnRole = () => {
     if (!user) {
-      window.location.href = "http://localhost:3000/login";
+      window.location.href = PORTAL.LOGIN_PAGE;
       return;
     }
 
@@ -156,14 +156,14 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
     sessionStorage.removeItem("loginSuccessShown");
-    
+
     // Redirect ke Portal untuk login
-    window.location.href = "http://localhost:3000/login";
+    window.location.href = PORTAL.LOGIN_PAGE;
   };
 
   const verifyToken = async (token) => {
     try {
-      const response = await fetch("http://localhost:4000/users/verify-token", {
+      const response = await fetch(PORTAL_API.VERIFY_TOKEN, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token }),

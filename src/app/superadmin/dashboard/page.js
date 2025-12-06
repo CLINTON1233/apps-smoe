@@ -684,8 +684,17 @@ export default function SuperAdminDashboard() {
         {/* Footer */}
         <footer className="mt-12 py-6 text-center text-gray-400 text-sm border-t border-gray-700/50 relative z-10">
           <div className="max-w-6xl mx-auto px-4">
-            <p>IT Applications Dashboard</p>
-            <p className="mt-1">seatrium.com</p>
+            <p>IT Application Dashboard</p>
+            <p className="mt-1">
+              <a
+                href="https://seatrium.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray hover:text-gray-300"
+              >
+                seatrium.com
+              </a>
+            </p>
           </div>
         </footer>
       </LayoutDashboard>

@@ -3,6 +3,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { PORTAL, getPortalLoginUrl } from "@/config/api";
 
 export default function HomeRedirectPage() {
   const router = useRouter();
@@ -17,20 +18,20 @@ export default function HomeRedirectPage() {
       // Jika ada token dari URL (datang dari Portal)
       if (tokenFromUrl && userFromUrl) {
         console.log("📥 Processing redirect from Portal...");
-        
+
         // Simpan ke localStorage
         localStorage.setItem("token", tokenFromUrl);
         localStorage.setItem("user", userFromUrl);
-        
+
         try {
           const userData = JSON.parse(decodeURIComponent(userFromUrl));
           userData.token = tokenFromUrl;
           localStorage.setItem("user", JSON.stringify(userData));
-          
+
           // Hapus parameter dari URL
           const newUrl = window.location.pathname;
           window.history.replaceState({}, document.title, newUrl);
-          
+
           // Redirect berdasarkan role
           if (userData.role === "superadmin") {
             router.push("/superadmin/dashboard");
@@ -40,11 +41,11 @@ export default function HomeRedirectPage() {
             router.push("/user/dashboard");
           } else {
             // Role tidak dikenal
-            window.location.href = "http://localhost:3000/login";
+            window.location.href = PORTAL.LOGIN_PAGE;
           }
         } catch (error) {
           console.error("Error processing redirect:", error);
-          window.location.href = "http://localhost:3000/login";
+          window.location.href = PORTAL.LOGIN_PAGE;
         }
         return;
       }
@@ -52,11 +53,11 @@ export default function HomeRedirectPage() {
       // Jika tidak ada di URL, coba dari localStorage
       const token = localStorage.getItem("token");
       const storedUser = localStorage.getItem("user");
-      
+
       if (token && storedUser) {
         try {
           const userData = JSON.parse(storedUser);
-          
+
           // Redirect berdasarkan role
           if (userData.role === "superadmin") {
             router.push("/superadmin/dashboard");
@@ -68,15 +69,15 @@ export default function HomeRedirectPage() {
             // Role tidak dikenal
             localStorage.removeItem("token");
             localStorage.removeItem("user");
-            window.location.href = "http://localhost:3000/login";
+            window.location.href = PORTAL.LOGIN_PAGE;
           }
         } catch (error) {
           console.error("Error parsing user data:", error);
-          window.location.href = "http://localhost:3000/login";
+          window.location.href = PORTAL.LOGIN_PAGE;
         }
       } else {
         console.log("No token found, redirecting to Portal...");
-        window.location.href = "http://localhost:3000/login";
+        window.location.href = PORTAL.LOGIN_PAGE;
       }
     };
 
