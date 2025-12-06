@@ -18,7 +18,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Poppins } from "next/font/google";
 import Swal from "sweetalert2";
-import { useAuth } from "../../../context/AuthContext"
+import { useAuth } from "../../../context/AuthContext";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -29,7 +29,7 @@ export default function LayoutDashboard({ children }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [userData, setUserData] = useState(null);
-    const { user, logout } = useAuth(); 
+  const { user, logout } = useAuth();
   const pathname = usePathname();
 
   // Close dropdown ketika klik di luar
@@ -74,10 +74,10 @@ export default function LayoutDashboard({ children }) {
     cancelButtonColor: "#ef4444",
   };
 
-    const handleLogout = () => {
+  const handleLogout = () => {
     Swal.fire({
       title: "Confirm Logout",
-      text: "Are you sure you want to logout?",
+      text: "Are you sure you want to logout & Back to Portal?",
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Yes, Logout!",
@@ -91,7 +91,7 @@ export default function LayoutDashboard({ children }) {
     }).then((result) => {
       if (result.isConfirmed) {
         logout(); // Panggil logout dari context
-        
+
         Swal.fire({
           title: "Logged Out!",
           text: "You have been successfully logged out.",
@@ -128,35 +128,38 @@ export default function LayoutDashboard({ children }) {
   };
 
   // Daftar navigasi
-// Update navItems di LayoutDashboard.js
-const navItems = [
- { href: "/superadmin/dashboard", label: "Dashboard", icon: DashboardIcon },
-  { href: "/superadmin/management-app-store", label: "App Store", icon: Store },
-  {
-    href: "/superadmin/management-categories",
-    label: "Categories",
-    icon: Package,
-  },
-  { href: "/superadmin/management-users", label: "Users", icon: Users },
-  // { href: "/superadmin/profile", label: "Profile", icon: User },
-];
+  // Update navItems di LayoutDashboard.js
+  const navItems = [
+    { href: "/superadmin/dashboard", label: "Dashboard", icon: DashboardIcon },
+    {
+      href: "/superadmin/management-app-store",
+      label: "App Store",
+      icon: Store,
+    },
+    {
+      href: "/superadmin/management-categories",
+      label: "Categories",
+      icon: Package,
+    },
+    { href: "/superadmin/management-users", label: "Users", icon: Users },
+    { href: "/superadmin/profile", label: "Profile", icon: User },
+  ];
 
-
-const formatRole = (role) => {
-  const roleMap = {
-    admin: "Admin",
-    superadmin: "Superadmin",
+  const formatRole = (role) => {
+    const roleMap = {
+      admin: "Admin",
+      superadmin: "Superadmin",
+    };
+    return roleMap[role] || "Invalid Role";
   };
-  return roleMap[role] || "Invalid Role";
-};
 
-const getRoleColor = (role) => {
-  const colorMap = {
-    admin: "text-green-400 bg-green-900/30",
-    superadmin: "text-purple-400 bg-purple-900/30",
+  const getRoleColor = (role) => {
+    const colorMap = {
+      admin: "text-green-400 bg-green-900/30",
+      superadmin: "text-purple-400 bg-purple-900/30",
+    };
+    return colorMap[role] || "text-red-400 bg-red-900/30";
   };
-  return colorMap[role] || "text-red-400 bg-red-900/30";
-};
   // const formatRole = (role) => {
   //   const roleMap = {
   //     admin: "Admin",
@@ -307,14 +310,14 @@ const getRoleColor = (role) => {
 
                     {/* Action Buttons */}
                     <div className="px-2 py-2">
-                      {/* <Link
-                        href="/profile"
+                      <Link
+                        href="/superadmin/profile"
                         onClick={() => setIsUserDropdownOpen(false)}
                         className="flex items-center gap-3 px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 rounded-lg transition w-full"
                       >
                         <User className="w-4 h-4" />
                         View Profile
-                      </Link> */}
+                      </Link>
                       <button
                         onClick={() => {
                           setIsUserDropdownOpen(false);
