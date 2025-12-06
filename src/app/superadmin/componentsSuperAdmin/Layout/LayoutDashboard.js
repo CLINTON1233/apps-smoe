@@ -28,7 +28,8 @@ const poppins = Poppins({
 export default function LayoutDashboard({ children }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
-  const [userData, setUserData] = useState(null);
+  // const [userData, setUserData] = useState(null);
+  const { user: userData } = useAuth();
   const { user, logout } = useAuth();
   const pathname = usePathname();
 
@@ -141,7 +142,7 @@ export default function LayoutDashboard({ children }) {
       label: "Categories",
       icon: Package,
     },
-    { href: "/superadmin/management-users", label: "Users", icon: Users },
+    // { href: "/superadmin/management-users", label: "Users", icon: Users },
     { href: "/superadmin/profile", label: "Profile", icon: User },
   ];
 

@@ -19,10 +19,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import ProtectedRoute from "../../components/ProtectedRoute";
-import API_BASE_URL, { API_ENDPOINTS } from "../../../config/api";
+import { API_ENDPOINTS } from "../../../config/api";
+import { useAuth } from "../../context/AuthContext"; // Import useAuth
 
-export default function AdminProfile() {
+export default function SuperAdminProfile() {
   const router = useRouter();
+  const { user: authUser, logout } = useAuth(); // Ambil user dari AuthContext
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -41,55 +43,58 @@ export default function AdminProfile() {
 
   const [tempData, setTempData] = useState({ ...userData });
 
-  // Get current user from localStorage
-  const getCurrentUser = () => {
+  // Get current user from localStorage (datang dari Portal)
+  const getCurrentUserFromPortal = () => {
     if (typeof window !== "undefined") {
       const userStr = localStorage.getItem("user");
-      return userStr ? JSON.parse(userStr) : null;
+      if (userStr) {
+        try {
+          return JSON.parse(userStr);
+        } catch (error) {
+          console.error("Error parsing user from localStorage:", error);
+        }
+      }
     }
     return null;
   };
 
-  // Fetch user data from API based on logged in user
+  // Fetch user data - SEKARANG AMBIL DARI PORTAL LOCALSTORAGE
   const fetchUserProfile = async () => {
     try {
       setIsLoading(true);
 
-      const currentUser = getCurrentUser();
+      // Ambil user dari localStorage (datang dari Portal)
+      const portalUser = getCurrentUserFromPortal();
 
-      if (!currentUser || !currentUser.id) {
+      if (!portalUser || !portalUser.id) {
         Swal.fire({
           title: "Error",
-          text: "User not found. Please login again.",
+          text: "User not found. Please login again from Portal.",
           icon: "error",
           confirmButtonColor: "#1e40af",
           background: "#1f2937",
           color: "#f9fafb",
         }).then(() => {
-          router.push("/login");
+          // Redirect ke Portal untuk login
+          window.location.href = "http://localhost:3000/login";
         });
         return;
       }
 
-      const userId = currentUser.id;
+      // Format data user dari Portal
+      const userProfile = {
+        id: portalUser.id,
+        nama: portalUser.nama || "",
+        email: portalUser.email || "",
+        telp: portalUser.telp || "",
+        departemen: portalUser.departemen || "",
+        role: portalUser.role || "",
+        badge: portalUser.badge || "",
+        created_at: portalUser.created_at || new Date().toISOString(),
+      };
 
-      const response = await fetch(API_ENDPOINTS.USER_BY_ID(userId));
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-
-      if (result.status === "success") {
-        setUserData(result.data);
-        setTempData(result.data);
-
-        // Update localStorage dengan data terbaru
-        localStorage.setItem("user", JSON.stringify(result.data));
-      } else {
-        throw new Error(result.message || "Failed to load user profile");
-      }
+      setUserData(userProfile);
+      setTempData(userProfile);
     } catch (error) {
       console.error("Error fetching user profile:", error);
       Swal.fire({
@@ -105,21 +110,24 @@ export default function AdminProfile() {
     }
   };
 
-  // Update user profile
+  // Update user profile - SEKARANG UPDATE KE BACKEND PORTAL
   const updateUserProfile = async (updatedData) => {
     try {
-      const currentUser = getCurrentUser();
+      const portalUser = getCurrentUserFromPortal();
 
-      if (!currentUser || !currentUser.id) {
+      if (!portalUser || !portalUser.id) {
         throw new Error("User not found");
       }
 
-      const userId = currentUser.id;
+      const userId = portalUser.id;
+      const token = localStorage.getItem("token");
 
-      const response = await fetch(API_ENDPOINTS.USER_BY_ID(userId), {
+      // Update ke backend PORTAL (bukan AppsSMOE)
+      const response = await fetch(`http://localhost:4000/users/${userId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(updatedData),
       });
@@ -133,7 +141,14 @@ export default function AdminProfile() {
       }
 
       if (result.status === "success") {
-        return result.data;
+        // Update localStorage dengan data terbaru
+        const updatedUser = {
+          ...portalUser,
+          ...updatedData,
+        };
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+
+        return updatedUser;
       } else {
         throw new Error(result.message || "Failed to update profile");
       }
@@ -143,15 +158,16 @@ export default function AdminProfile() {
   };
 
   useEffect(() => {
-    // Check if user is logged in
-    const currentUser = getCurrentUser();
-    if (!currentUser) {
-      router.push("/login");
+    // Check if user is logged in (from Portal)
+    const portalUser = getCurrentUserFromPortal();
+    if (!portalUser) {
+      // Redirect ke Portal untuk login
+      window.location.href = "http://localhost:3000/login";
       return;
     }
 
     fetchUserProfile();
-  }, [router]);
+  }, []);
 
   const handleEdit = () => {
     setTempData({ ...userData });
@@ -172,9 +188,6 @@ export default function AdminProfile() {
 
       setUserData(updatedUser);
       setIsEditing(false);
-
-      // Update localStorage dengan data terbaru
-      localStorage.setItem("user", JSON.stringify(updatedUser));
 
       Swal.fire({
         title: "Success!",
@@ -215,7 +228,7 @@ export default function AdminProfile() {
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
+    return date.toLocaleDateString("id-ID", {
       year: "numeric",
       month: "long",
       day: "numeric",
@@ -234,10 +247,8 @@ export default function AdminProfile() {
   };
 
   const handleLogout = () => {
-    // Clear localStorage and redirect to login
-    localStorage.removeItem("user");
-    setShowLogoutModal(false);
-    router.push("/login");
+    // Gunakan logout dari AuthContext (yang akan redirect ke Portal)
+    logout();
   };
 
   if (isLoading) {
@@ -248,7 +259,7 @@ export default function AdminProfile() {
             <div className="flex justify-center items-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
               <span className="ml-3 text-gray-400 text-sm">
-                Loading profile...
+                Loading profile from Portal...
               </span>
             </div>
           </div>
@@ -269,7 +280,7 @@ export default function AdminProfile() {
                 src="/seatrium_logo_white.png"
                 alt="Seatrium Background Logo"
                 fill
-                className="object-contain opacity-3 scale-75" // Opacity 3% untuk efek transparan yang lebih halus
+                className="object-contain opacity-3 scale-75"
                 priority
               />
             </div>
@@ -289,6 +300,10 @@ export default function AdminProfile() {
               <p className="text-gray-400 text-sm">
                 Manage your account information and preferences
               </p>
+              {/* <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-blue-900/30 text-blue-300 text-xs rounded-full border border-blue-700/50">
+                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                Connected to Portal
+              </div> */}
             </div>
 
             {/* Profile Form Container */}
@@ -483,14 +498,33 @@ export default function AdminProfile() {
                   </div>
                 </div>
               </div>
+
+              {/* Note */}
+              {/* <div className="mt-4 p-3 bg-blue-900/20 border border-blue-700/30 rounded-lg">
+                <p className="text-xs text-blue-300 text-center">
+                  <strong>Note:</strong> Profile data is managed through the
+                  Portal. Changes will be reflected across all connected
+                  applications.
+                </p>
+              </div> */}
             </div>
           </div>
 
           {/* Footer */}
+
           <footer className="mt-12 py-6 text-center text-gray-400 text-sm border-t border-gray-700/50 relative z-10">
             <div className="max-w-6xl mx-auto px-4">
-              <p>IT Infrastructure Dashboard</p>
-              <p className="mt-1">seatrium.com</p>
+              <p>IT Application Dashboard</p>
+              <p className="mt-1">
+                <a
+                  href="https://seatrium.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-gray hover:text-gray-300"
+                >
+                  seatrium.com
+                </a>
+              </p>
             </div>
           </footer>
 
@@ -507,7 +541,8 @@ export default function AdminProfile() {
                 </h2>
 
                 <p className="text-gray-300 mb-4 text-sm">
-                  Are you sure you want to logout from your account?
+                  Are you sure you want to logout? You will be redirected to the
+                  Portal login page.
                 </p>
 
                 <div className="flex flex-col sm:flex-row justify-between gap-3">

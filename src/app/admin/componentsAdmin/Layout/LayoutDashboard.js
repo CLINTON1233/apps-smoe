@@ -28,7 +28,8 @@ const poppins = Poppins({
 export default function LayoutDashboard({ children }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
-  const [userData, setUserData] = useState(null);
+  // const [userData, setUserData] = useState(null);
+  const { user: userData } = useAuth();
   const { user, logout } = useAuth();
   const pathname = usePathname();
 
