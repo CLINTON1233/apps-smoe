@@ -48,23 +48,40 @@ export default function LayoutDashboard({ children }) {
   }, [isUserDropdownOpen]);
 
   // Ambil data user dari localStorage saat komponen mount
-  useEffect(() => {
-    const getUserData = () => {
-      if (typeof window !== "undefined") {
-        const userStr = localStorage.getItem("user");
-        if (userStr) {
-          try {
-            const user = JSON.parse(userStr);
-            setUserData(user);
-          } catch (error) {
-            console.error("Error parsing user data:", error);
-          }
-        }
-      }
-    };
+  // useEffect(() => {
+  //   const getUserData = () => {
+  //     if (typeof window !== "undefined") {
+  //       const userStr = localStorage.getItem("user");
+  //       if (userStr) {
+  //         try {
+  //           const user = JSON.parse(userStr);
+  //           setUserData(user);
+  //         } catch (error) {
+  //           console.error("Error parsing user data:", error);
+  //         }
+  //       }
+  //     }
+  //   };
 
-    getUserData();
-  }, []);
+  //   getUserData();
+  // }, []);
+
+  useEffect(() => {
+  // Jika userData dari useAuth masih null, coba ambil dari localStorage
+  if (!userData && typeof window !== "undefined") {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try {
+        const parsedUser = JSON.parse(userStr);
+        // Jika context auth memiliki fungsi untuk set user, panggil di sini
+        // Atau cukup biarkan context auth menangani sendiri
+        console.log("User data loaded from localStorage:", parsedUser);
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+      }
+    }
+  }
+}, [userData]);
 
   // Konfigurasi SweetAlert untuk Dark Mode
   const swalDarkConfig = {
