@@ -61,6 +61,7 @@ export default function AdminApplicationsManagement() {
   const [editIconSearch, setEditIconSearch] = useState("");
 
   // Form states
+
   const [newApp, setNewApp] = useState({
     title: "",
     fullName: "",
@@ -69,6 +70,7 @@ export default function AdminApplicationsManagement() {
     description: "",
     file: null,
     iconId: "",
+    status: "license", // TAMBAH INI
   });
 
   const [editApp, setEditApp] = useState({
@@ -80,8 +82,8 @@ export default function AdminApplicationsManagement() {
     description: "",
     file: null,
     iconId: "",
+    status: "license", // TAMBAH INI
   });
-
   const entriesOptions = [10, 25, 50, 100, "All"];
 
   // Format file size
@@ -261,6 +263,7 @@ export default function AdminApplicationsManagement() {
   }) => {
     const dropdownRef = useRef(null);
     const inputRef = useRef(null);
+    const fileInputRef = useRef(null);
 
     const filteredIcons = icons.filter(
       (icon) =>
@@ -292,16 +295,35 @@ export default function AdminApplicationsManagement() {
       if (iconKey && typeof iconKey === "string") {
         // Cek jika ini custom icon (file)
         if (iconKey.includes("icon-") && iconKey.includes(".")) {
+          const iconPath = `uploads/icons/${iconKey}`;
+          const fullUrl = getIconUrl(iconPath);
+
+          console.log("Loading custom icon from:", fullUrl);
+
           return (
             <img
-              src={getIconUrl(`uploads/icons/${iconKey}`)}
+              src={fullUrl}
               alt="Custom Icon"
               className={className}
               style={{ width: "100%", height: "100%", objectFit: "contain" }}
               onError={(e) => {
-                console.error("Failed to load custom icon image:", iconKey);
+                console.error(
+                  "Failed to load custom icon image:",
+                  iconKey,
+                  "Path:",
+                  iconPath
+                );
+                // Fallback ke default icon
+                const LucideIcon = LucideIcons["Image"];
+                if (LucideIcon) {
+                  return <LucideIcon className={className} />;
+                }
+                // Jika tidak ada fallback, tampilkan div kosong
                 e.target.style.display = "none";
               }}
+              onLoad={() =>
+                console.log("Custom icon loaded successfully:", iconKey)
+              }
             />
           );
         }
@@ -330,6 +352,16 @@ export default function AdminApplicationsManagement() {
 
       // Fallback
       return <LucideIcons.Globe className={className} />;
+    };
+
+    // Fungsi untuk handle upload custom icon
+    const handleFileUpload = (event, mode) => {
+      const file = event.target.files[0];
+      if (file) {
+        handleUploadCustomIcon(file, mode);
+        // Reset file input
+        event.target.value = "";
+      }
     };
 
     useEffect(() => {
@@ -380,7 +412,6 @@ export default function AdminApplicationsManagement() {
             ) : currentIconId ? (
               <>
                 <div className="p-1 bg-blue-900/50 rounded">
-                  {/* Coba render icon dari currentIconId */}
                   {(() => {
                     const icon = icons.find(
                       (icon) => icon.id === parseInt(currentIconId)
@@ -407,9 +438,27 @@ export default function AdminApplicationsManagement() {
 
         {isOpen && (
           <div
-            className="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 max-h-60 overflow-hidden"
+            className="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 max-h-80 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Upload Option - DIATAS SEARCH BAR */}
+            <div className="p-2 border-b border-gray-700">
+              <label className="flex items-center justify-center gap-2 px-3 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg cursor-pointer transition">
+                <Upload className="w-4 h-4" />
+                <span>Upload Custom Icon</span>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => handleFileUpload(e, isEdit ? "edit" : "add")}
+                />
+              </label>
+              <p className="text-xs text-gray-400 text-center mt-1">
+                Max 5MB • JPEG, PNG, SVG, WebP
+              </p>
+            </div>
+
             {/* Search Input */}
             <div className="p-2 border-b border-gray-700">
               <div className="relative">
@@ -457,6 +506,9 @@ export default function AdminApplicationsManagement() {
                           {icon.category} • {icon.type}
                         </div>
                       </div>
+                      {selectedIcon?.id === icon.id && (
+                        <Check className="w-4 h-4 text-green-400" />
+                      )}
                     </button>
                   ))}
                 </div>
@@ -466,92 +518,162 @@ export default function AdminApplicationsManagement() {
                 </div>
               )}
             </div>
-
-            {/* Upload Option */}
-            <div className="p-2 border-t border-gray-700">
-              <label className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 rounded cursor-pointer">
-                <Upload className="w-4 h-4" />
-                <span>Upload custom icon</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      handleUploadCustomIcon(file, isEdit ? "edit" : "add");
-                    }
-                  }}
-                />
-              </label>
-            </div>
           </div>
         )}
       </div>
     );
   };
-
   // Handle upload custom icon
-  const handleUploadCustomIcon = async (file, mode = "add") => {
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("name", file.name.replace(/\.[^/.]+$/, ""));
+// PERBAIKAN: Enhanced handleUploadCustomIcon - PERBAIKI URL ENDPOINT
+const handleUploadCustomIcon = async (file, mode = "add") => {
+  try {
+    setIsUploading(true);
 
-      const response = await fetch(`${API_BASE_URL}/icons/upload`, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        if (result.status === "success") {
-          // Add new icon to the list
-          setIcons((prev) => [...prev, result.data]);
-
-          // Select the newly uploaded icon
-          setSelectedIcon(result.data);
-
-          // Update state based on mode
-          if (mode === "add") {
-            setNewApp((prev) => ({
-              ...prev,
-              iconId: result.data.id.toString(),
-            }));
-            setShowIconDropdown(false);
-          } else {
-            setEditApp((prev) => ({
-              ...prev,
-              iconId: result.data.id.toString(),
-            }));
-            setShowEditIconDropdown(false);
-          }
-
-          Swal.fire({
-            title: "Success!",
-            text: "Custom icon uploaded successfully",
-            icon: "success",
-            confirmButtonColor: "#3b82f6",
-            background: "#1f2937",
-            color: "#f9fafb",
-          });
-        }
-      } else {
-        throw new Error("Upload failed");
-      }
-    } catch (error) {
-      console.error("Error uploading custom icon:", error);
+    // Validasi file
+    if (!file) {
       Swal.fire({
         title: "Error",
-        text: "Failed to upload custom icon",
+        text: "Please select a file",
         icon: "error",
         confirmButtonColor: "#3b82f6",
         background: "#1f2937",
         color: "#f9fafb",
       });
+      return;
     }
-  };
 
+    // Validasi tipe file
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/svg+xml",
+      "image/webp",
+    ];
+    if (!allowedTypes.includes(file.type)) {
+      Swal.fire({
+        title: "Error",
+        text: "Only image files are allowed (JPEG, PNG, SVG, WebP)",
+        icon: "error",
+        confirmButtonColor: "#3b82f6",
+        background: "#1f2937",
+        color: "#f9fafb",
+      });
+      return;
+    }
+
+    // Validasi ukuran file (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      Swal.fire({
+        title: "Error",
+        text: "File size must be less than 5MB",
+        icon: "error",
+        confirmButtonColor: "#3b82f6",
+        background: "#1f2937",
+        color: "#f9fafb",
+      });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("name", file.name.replace(/\.[^/.]+$/, ""));
+    formData.append("category", "Custom");
+
+    console.log("Uploading custom icon...", {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+    });
+
+    // PERBAIKAN: Gunakan endpoint yang benar dari API_ENDPOINTS
+    const UPLOAD_ENDPOINT = `${API_BASE_URL}/icons/upload`;
+    console.log("Upload endpoint:", UPLOAD_ENDPOINT);
+
+    const response = await fetch(UPLOAD_ENDPOINT, {
+      method: "POST",
+      body: formData,
+      // Jangan set headers Content-Type, biarkan browser set otomatis untuk FormData
+    });
+
+    console.log("Upload response status:", response.status);
+    console.log("Upload response headers:", response.headers);
+
+    if (!response.ok) {
+      let errorMessage = "Upload failed";
+      
+      try {
+        // Coba parse sebagai JSON dulu
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch (jsonError) {
+        // Jika bukan JSON, coba baca sebagai text
+        try {
+          const errorText = await response.text();
+          console.error("Upload error text:", errorText);
+          errorMessage = errorText || "Upload failed";
+        } catch (textError) {
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        }
+      }
+      
+      throw new Error(errorMessage);
+    }
+
+    const result = await response.json();
+    console.log("Upload result:", result);
+
+    if (result.status === "success") {
+      // Add new icon to the list
+      const newIcon = result.data;
+      setIcons((prev) => [...prev, newIcon]);
+
+      // Select the newly uploaded icon
+      setSelectedIcon(newIcon);
+
+      // Update state based on mode
+      if (mode === "add") {
+        setNewApp((prev) => ({
+          ...prev,
+          iconId: newIcon.id.toString(),
+        }));
+        setShowIconDropdown(false);
+      } else {
+        setEditApp((prev) => ({
+          ...prev,
+          iconId: newIcon.id.toString(),
+        }));
+        setShowEditIconDropdown(false);
+      }
+
+      // Refresh icons list
+      await fetchIcons();
+
+      Swal.fire({
+        title: "Success!",
+        text: "Custom icon uploaded successfully",
+        icon: "success",
+        confirmButtonColor: "#3b82f6",
+        background: "#1f2937",
+        color: "#f9fafb",
+      });
+    } else {
+      throw new Error(result.message || "Upload failed");
+    }
+  } catch (error) {
+    console.error("Error uploading custom icon:", error);
+    Swal.fire({
+      title: "Upload Error",
+      text: error.message || "Failed to upload custom icon. Please check your backend server.",
+      icon: "error",
+      confirmButtonColor: "#3b82f6",
+      background: "#1f2937",
+      color: "#f9fafb",
+    });
+  } finally {
+    setIsUploading(false);
+  }
+};
   // Fetch applications
   // PERBAIKAN: Enhanced fetchApplications untuk debugging
   const fetchApplications = async () => {
@@ -792,7 +914,6 @@ export default function AdminApplicationsManagement() {
   );
 
   // Handle Create Application
-  // PERBAIKAN: Update handleCreateApp function
   const handleCreateApp = async () => {
     if (isSubmitting || isUploading) return;
 
@@ -823,6 +944,7 @@ export default function AdminApplicationsManagement() {
       formData.append("title", newApp.title);
       formData.append("fullName", newApp.fullName);
       formData.append("categoryId", newApp.categoryId);
+      formData.append("status", newApp.status);
       formData.append("version", newApp.version);
       formData.append("description", newApp.description);
 
@@ -944,6 +1066,7 @@ export default function AdminApplicationsManagement() {
       formData.append("title", editApp.title);
       formData.append("fullName", editApp.fullName);
       formData.append("categoryId", editApp.categoryId);
+      formData.append("status", newApp.status);
       formData.append("version", editApp.version);
       formData.append("description", editApp.description);
 
@@ -1249,15 +1372,15 @@ export default function AdminApplicationsManagement() {
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-400">Status:</span>
+            <span className="text-gray-400"> Status:</span>
             <span
               className={`px-2 py-1 rounded-full text-xs ${
-                app.status === "active"
-                  ? "bg-green-900/50 text-green-400"
-                  : "bg-red-900/50 text-red-400"
+                app.status === "license"
+                  ? "bg-blue-900/50 text-blue-400"
+                  : "bg-green-900/50 text-green-400"
               }`}
             >
-              {app.status}
+              {app.status === "license" ? "License" : "Paid"}
             </span>
           </div>
           {app.file_name && (
@@ -1347,20 +1470,18 @@ export default function AdminApplicationsManagement() {
               <p className="text-white">{app.version || "1.0.0"}</p>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                Status
-              </label>
-              <span
-                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  app.status === "active"
-                    ? "bg-green-900/50 text-green-400"
-                    : "bg-red-900/50 text-red-400"
-                }`}
-              >
-                {app.status}
-              </span>
-            </div>
+       <div>
+  <label className="block text-sm font-medium text-gray-300 mb-1">
+    Status Status
+  </label>
+  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+    app.status === 'license' 
+      ? 'bg-blue-900/50 text-blue-400' 
+      : 'bg-green-900/50 text-green-400'
+  }`}>
+    {app.status === 'license' ? 'License' : 'Paid'}
+  </span>
+</div>
 
             {app.file_name && (
               <div>
@@ -1629,12 +1750,14 @@ export default function AdminApplicationsManagement() {
                                 <td className="px-4 py-3">
                                   <span
                                     className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                      app.status === "active"
-                                        ? "bg-green-900/50 text-green-400"
-                                        : "bg-red-900/50 text-red-400"
+                                      app.status === "license"
+                                        ? "bg-blue-900/50 text-blue-400"
+                                        : "bg-green-900/50 text-green-400"
                                     }`}
                                   >
-                                    {app.status}
+                                    {app.status === "license"
+                                      ? "License"
+                                      : "Paid"}
                                   </span>
                                 </td>
                                 <td className="px-4 py-3 text-sm text-white">
@@ -1867,6 +1990,28 @@ export default function AdminApplicationsManagement() {
                         No categories available. Please create categories first.
                       </p>
                     )}
+                  </div>
+
+                  {/* Licesense */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      Application Status *
+                    </label>
+                    <select
+                      value={newApp.status}
+                      onChange={(e) =>
+                        setNewApp({ ...newApp, status: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white bg-gray-700"
+                      disabled={isSubmitting}
+                    >
+                      <option value="license" className="text-white">
+                        License
+                      </option>
+                      <option value="paid" className="text-white">
+                        Paid
+                      </option>
+                    </select>
                   </div>
 
                   {/* Icon Field - menggunakan IconDropdown */}
@@ -2105,6 +2250,28 @@ export default function AdminApplicationsManagement() {
                           {category.name}
                         </option>
                       ))}
+                    </select>
+                  </div>
+
+                  {/* license*/}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      Application Status *
+                    </label>
+                    <select
+                      value={editApp.status}
+                      onChange={(e) =>
+                        setEditApp({ ...editApp, status: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white bg-gray-700"
+                      disabled={isSubmitting}
+                    >
+                      <option value="license" className="text-white">
+                        License
+                      </option>
+                      <option value="paid" className="text-white">
+                        Paid
+                      </option>
                     </select>
                   </div>
 

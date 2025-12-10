@@ -630,7 +630,8 @@ export default function SuperAdminDashboard() {
                             className={`px-3 py-1 rounded-lg text-sm font-semibold uppercase ${
                               app.status === "active"
                                 ? "text-green-400"
-                                : "text-red-400"
+                                // : "text-red-400"
+                                :"text-green-400"
                             }`}
                           >
                             {app.status || "Active"}
