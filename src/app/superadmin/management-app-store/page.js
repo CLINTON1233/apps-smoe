@@ -21,7 +21,12 @@ import Swal from "sweetalert2";
 import Image from "next/image";
 import * as LucideIcons from "lucide-react";
 import ProtectedRoute from "../../components/ProtectedRoute";
-import API_BASE_URL, { API_ENDPOINTS, getIconUrl } from "../../../config/api";
+// import API_BASE_URL, { API_ENDPOINTS, getIconUrl } from "../../../config/api";
+import API_BASE_URL, { 
+  API_ENDPOINTS, 
+  getIconUrl, 
+  SMOE_API_URL 
+} from "../../../config/api";
 
 // Dynamic icon component
 const DynamicIcon = ({ iconName, ...props }) => {
@@ -97,38 +102,55 @@ export default function AdminApplicationsManagement() {
   };
 
   // AppIcon Component untuk menampilkan icon di table
-  const AppIcon = ({ app, className = "w-6 h-6" }) => {
-    const icon = app.icon || app.iconObject;
+const AppIcon = ({ app, className = "w-6 h-6" }) => {
+  const icon = app.icon || app.iconObject;
 
-    console.log("🔍 AppIcon Debug:", {
-      appId: app.id,
-      appTitle: app.title,
-      iconId: app.icon_id,
-      iconData: icon,
-      hasIcon: !!icon,
+  console.log("🔍 AppIcon Debug:", {
+    appId: app.id,
+    appTitle: app.title,
+    iconId: app.icon_id,
+    iconData: icon,
+    hasIcon: !!icon,
+    file_path: icon?.file_path,
+  });
+
+  // Jika icon adalah object lengkap (dari backend relations)
+  if (icon && typeof icon === "object") {
+    const iconKey = icon.icon_key;
+
+    // Debug info
+    console.log("📦 Icon object found:", {
+      id: icon.id,
+      name: icon.name,
+      icon_key: iconKey,
+      type: icon.type,
+      file_path: icon.file_path,
     });
 
-    // Jika icon adalah object lengkap (dari backend relations)
-    if (icon && typeof icon === "object") {
-      const iconKey = icon.icon_key;
-
-      // Debug info
-      console.log("📦 Icon object found:", {
-        id: icon.id,
-        name: icon.name,
-        icon_key: iconKey,
-        type: icon.type,
-        file_path: icon.file_path,
-      });
-
-      // Cek jika ini custom icon (file)
-      if (icon.type === "custom" && icon.file_path) {
-        console.log("🖼️ Rendering custom icon:", icon.file_path);
-        return (
+    // Cek jika ini custom icon (file)
+    if (icon.type === "custom" && icon.file_path) {
+      console.log("🖼️ Rendering custom icon from:", icon.file_path);
+      
+      // Gunakan getIconUrl untuk mendapatkan URL yang benar
+      const iconUrl = getIconUrl(icon.file_path);
+      console.log("🌐 Icon URL:", iconUrl);
+      
+      return (
+        <div 
+          className={`${className} flex items-center justify-center overflow-hidden`}
+          style={{
+            width: "100%",
+            height: "100%",
+            minWidth: "24px",
+            minHeight: "24px",
+            maxWidth: "24px",
+            maxHeight: "24px",
+          }}
+        >
           <img
-            src={getIconUrl(icon.file_path)}
+            src={iconUrl}
             alt={icon.name}
-            className={className}
+            className="max-w-full max-h-full object-contain"
             style={{
               width: "100%",
               height: "100%",
@@ -136,119 +158,157 @@ export default function AdminApplicationsManagement() {
               borderRadius: "4px",
             }}
             onError={(e) => {
-              console.error("❌ Failed to load custom icon:", icon.file_path);
+              console.error("❌ Failed to load custom icon:", {
+                url: iconUrl,
+                file_path: icon.file_path,
+              });
               // Fallback ke default icon
               e.target.style.display = "none";
-              // You might want to show a placeholder here
+              const fallbackDiv = e.target.parentNode.querySelector('.icon-fallback');
+              if (fallbackDiv) {
+                fallbackDiv.style.display = 'flex';
+              }
+            }}
+            onLoad={() => {
+              console.log("✅ Custom icon loaded successfully:", iconUrl);
             }}
           />
-        );
-      }
-
-      // Gunakan Lucide icon jika icon_key valid
-      if (iconKey) {
-        // Cari nama icon yang tepat di LucideIcons
-        const iconName = iconKey;
-        console.log("🔤 Looking for Lucide icon:", iconName);
-
-        // Coba beberapa format
-        const possibleNames = [
-          iconName,
-          iconName.charAt(0).toUpperCase() + iconName.slice(1),
-          iconName
-            .replace(/([A-Z])/g, " $1")
-            .trim()
-            .replace(/ /g, ""),
-          iconName
-            .split("-")
-            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(""),
-        ];
-
-        for (const name of possibleNames) {
-          const IconComponent = LucideIcons[name];
-          if (IconComponent) {
-            console.log("✅ Found Lucide icon:", name);
-            return <IconComponent className={className} />;
-          }
-        }
-
-        console.log("❌ No Lucide icon found for any variation of:", iconName);
-      }
-    }
-
-    // Jika ada icon_id tapi tidak ada icon object, cari di icons list
-    if (app.icon_id && !icon) {
-      console.log(
-        "🔍 Icon ID exists but no object, searching in icons list..."
+          {/* Fallback div jika gambar gagal load */}
+          <div 
+            className="icon-fallback hidden w-full h-full bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg items-center justify-center"
+            style={{
+              minWidth: "24px",
+              minHeight: "24px",
+              maxWidth: "24px",
+              maxHeight: "24px",
+            }}
+          >
+            <span className="text-white text-xs font-bold">
+              {app.title?.charAt(0)?.toUpperCase() || "A"}
+            </span>
+          </div>
+        </div>
       );
-      const foundIcon = icons.find((i) => i.id === app.icon_id);
-      if (foundIcon) {
-        console.log("✅ Found icon in icons list:", foundIcon.name);
-        // Rekursif panggil diri sendiri dengan icon yang ditemukan
-        return (
-          <AppIcon app={{ ...app, icon: foundIcon }} className={className} />
-        );
-      }
     }
 
-    // Jika icon hanya berupa string (icon_key langsung dari backend lama)
-    if (app.icon && typeof app.icon === "string") {
-      console.log("📝 Icon is string:", app.icon);
-      const IconComponent = LucideIcons[app.icon];
-      if (IconComponent) {
-        return <IconComponent className={className} />;
+    // Gunakan Lucide icon jika icon_key valid
+    if (iconKey) {
+      // Cari nama icon yang tepat di LucideIcons
+      const iconName = iconKey;
+      console.log("🔤 Looking for Lucide icon:", iconName);
+
+      // Coba beberapa format
+      const possibleNames = [
+        iconName,
+        iconName.charAt(0).toUpperCase() + iconName.slice(1),
+        iconName
+          .replace(/([A-Z])/g, " $1")
+          .trim()
+          .replace(/ /g, ""),
+        iconName
+          .split("-")
+          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(""),
+      ];
+
+      for (const name of possibleNames) {
+        const IconComponent = LucideIcons[name];
+        if (IconComponent) {
+          console.log("✅ Found Lucide icon:", name);
+          return (
+            <div className={className}>
+              <IconComponent className="w-full h-full" />
+            </div>
+          );
+        }
       }
+
+      console.log("❌ No Lucide icon found for any variation of:", iconName);
     }
+  }
 
-    // Fallback ke icon default berdasarkan category
-    console.log("🔄 Falling back to default icon");
+  // Jika ada icon_id tapi tidak ada icon object, cari di icons list
+  if (app.icon_id && !icon) {
+    console.log(
+      "🔍 Icon ID exists but no object, searching in icons list..."
+    );
+    const foundIcon = icons.find((i) => i.id === app.icon_id);
+    if (foundIcon) {
+      console.log("✅ Found icon in icons list:", foundIcon.name);
+      // Rekursif panggil diri sendiri dengan icon yang ditemukan
+      return (
+        <AppIcon app={{ ...app, icon: foundIcon }} className={className} />
+      );
+    }
+  }
 
-    // Coba icon berdasarkan category
-    if (app.category?.name) {
-      const category = app.category.name.toLowerCase();
-      const categoryIcons = {
-        design: "Palette",
-        development: "Code",
-        productivity: "CheckSquare",
-        communication: "MessageSquare",
-        finance: "DollarSign",
-        graphics: "Image",
-        media: "Video",
-        education: "BookOpen",
-        utility: "Settings",
-        game: "Gamepad",
-        business: "Briefcase",
-        health: "Heart",
-      };
+  // Jika icon hanya berupa string (icon_key langsung dari backend lama)
+  if (app.icon && typeof app.icon === "string") {
+    console.log("📝 Icon is string:", app.icon);
+    const IconComponent = LucideIcons[app.icon];
+    if (IconComponent) {
+      return (
+        <div className={className}>
+          <IconComponent className="w-full h-full" />
+        </div>
+      );
+    }
+  }
 
-      for (const [cat, iconName] of Object.entries(categoryIcons)) {
-        if (category.includes(cat)) {
-          const IconComponent = LucideIcons[iconName];
-          if (IconComponent) {
-            console.log(`🎯 Using category icon for ${category}: ${iconName}`);
-            return <IconComponent className={className} />;
-          }
+  // Fallback ke icon default berdasarkan category
+  console.log("🔄 Falling back to default icon");
+
+  // Coba icon berdasarkan category
+  if (app.category?.name) {
+    const category = app.category.name.toLowerCase();
+    const categoryIcons = {
+      design: "Palette",
+      development: "Code",
+      productivity: "CheckSquare",
+      communication: "MessageSquare",
+      finance: "DollarSign",
+      graphics: "Image",
+      media: "Video",
+      education: "BookOpen",
+      utility: "Settings",
+      game: "Gamepad",
+      business: "Briefcase",
+      health: "Heart",
+    };
+
+    for (const [cat, iconName] of Object.entries(categoryIcons)) {
+      if (category.includes(cat)) {
+        const IconComponent = LucideIcons[iconName];
+        if (IconComponent) {
+          console.log(`🎯 Using category icon for ${category}: ${iconName}`);
+          return (
+            <div className={className}>
+              <IconComponent className="w-full h-full" />
+            </div>
+          );
         }
       }
     }
+  }
 
-    // Ultimate fallback - icon A dengan background
-    console.log("⚠️ Ultimate fallback - showing default 'A' icon");
-    return (
-      <div
-        className={`${className} bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center`}
-        style={{
-          minWidth: className.includes("w-") ? "" : "24px",
-          minHeight: className.includes("h-") ? "" : "24px",
-        }}
-      >
-        <span className="text-white text-xs font-bold">
-          {app.title?.charAt(0)?.toUpperCase() || "A"}
-        </span>
-      </div>
-    );
-  };
+  // Ultimate fallback - icon A dengan background
+  console.log("⚠️ Ultimate fallback - showing default 'A' icon");
+  return (
+    <div
+      className={`${className} bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center`}
+      style={{
+        minWidth: "24px",
+        minHeight: "24px",
+        maxWidth: "24px",
+        maxHeight: "24px",
+      }}
+    >
+      <span className="text-white text-xs font-bold">
+        {app.title?.charAt(0)?.toUpperCase() || "A"}
+      </span>
+    </div>
+  );
+};
 
   // IconDropdown Component
   const IconDropdown = ({
@@ -288,72 +348,88 @@ export default function AdminApplicationsManagement() {
       }
     }, [icons, selectedIcon, currentIconId]);
 
-    const IconComponent = ({ iconKey, className = "w-4 h-4" }) => {
-      console.log("IconComponent called with key:", iconKey);
+const IconComponent = ({ iconKey, className = "w-4 h-4" }) => {
+  console.log("IconComponent called with key:", iconKey);
 
-      // Cek jika iconKey adalah string dan ada di LucideIcons
-      if (iconKey && typeof iconKey === "string") {
-        // Cek jika ini custom icon (file)
-        if (iconKey.includes("icon-") && iconKey.includes(".")) {
-          const iconPath = `uploads/icons/${iconKey}`;
-          const fullUrl = getIconUrl(iconPath);
+  // Cek jika iconKey adalah string dan ada di LucideIcons
+  if (iconKey && typeof iconKey === "string") {
+    // Cek jika ini custom icon (file)
+    if (iconKey.includes("icon-") && iconKey.includes(".")) {
+      const iconPath = `uploads/icons/${iconKey}`;
+      const fullUrl = getIconUrl(iconPath);
 
-          console.log("Loading custom icon from:", fullUrl);
+      console.log("Loading custom icon from:", fullUrl);
 
-          return (
-            <img
-              src={fullUrl}
-              alt="Custom Icon"
-              className={className}
-              style={{ width: "100%", height: "100%", objectFit: "contain" }}
-              onError={(e) => {
-                console.error(
-                  "Failed to load custom icon image:",
-                  iconKey,
-                  "Path:",
-                  iconPath
-                );
-                // Fallback ke default icon
-                const LucideIcon = LucideIcons["Image"];
-                if (LucideIcon) {
-                  return <LucideIcon className={className} />;
-                }
-                // Jika tidak ada fallback, tampilkan div kosong
+      return (
+        <div 
+          className={`${className} flex items-center justify-center overflow-hidden`}
+          style={{
+            minWidth: "16px",
+            minHeight: "16px",
+            maxWidth: "16px",
+            maxHeight: "16px",
+          }}
+        >
+          <img
+            src={fullUrl}
+            alt="Custom Icon"
+            className="max-w-full max-h-full object-contain"
+            style={{ 
+              width: "100%", 
+              height: "100%", 
+              objectFit: "contain" 
+            }}
+            onError={(e) => {
+              console.error(
+                "Failed to load custom icon image:",
+                iconKey,
+                "Path:",
+                iconPath
+              );
+              // Fallback ke default icon
+              const LucideIcon = LucideIcons["Image"];
+              if (LucideIcon) {
                 e.target.style.display = "none";
-              }}
-              onLoad={() =>
-                console.log("Custom icon loaded successfully:", iconKey)
+                const iconElement = <LucideIcon className={className} />;
+                // Render fallback icon
+                const container = e.target.parentNode;
+                container.innerHTML = '';
+                container.appendChild(iconElement);
               }
-            />
-          );
-        }
+            }}
+            onLoad={() =>
+              console.log("Custom icon loaded successfully:", iconKey)
+            }
+          />
+        </div>
+      );
+    }
 
-        // Coba berbagai format nama icon
-        const possibleKeys = [
-          iconKey,
-          iconKey.charAt(0).toUpperCase() + iconKey.slice(1),
-          iconKey.replace(/-/g, ""),
-          iconKey
-            .split("-")
-            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(""),
-        ];
+    // Coba berbagai format nama icon
+    const possibleKeys = [
+      iconKey,
+      iconKey.charAt(0).toUpperCase() + iconKey.slice(1),
+      iconKey.replace(/-/g, ""),
+      iconKey
+        .split("-")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(""),
+    ];
 
-        for (const key of possibleKeys) {
-          const LucideIcon = LucideIcons[key];
-          if (LucideIcon) {
-            console.log("Found Lucide icon for key:", key);
-            return <LucideIcon className={className} />;
-          }
-        }
-
-        console.log("No Lucide icon found for any variation of:", iconKey);
+    for (const key of possibleKeys) {
+      const LucideIcon = LucideIcons[key];
+      if (LucideIcon) {
+        console.log("Found Lucide icon for key:", key);
+        return <LucideIcon className={className} />;
       }
+    }
 
-      // Fallback
-      return <LucideIcons.Globe className={className} />;
-    };
+    console.log("No Lucide icon found for any variation of:", iconKey);
+  }
 
+  // Fallback
+  return <LucideIcons.Globe className={className} />;
+};
     // Fungsi untuk handle upload custom icon
     const handleFileUpload = (event, mode) => {
       const file = event.target.files[0];
@@ -523,8 +599,7 @@ export default function AdminApplicationsManagement() {
       </div>
     );
   };
-  // Handle upload custom icon
-// PERBAIKAN: Enhanced handleUploadCustomIcon - PERBAIKI URL ENDPOINT
+// Di handleUploadCustomIcon function, perbaiki:
 const handleUploadCustomIcon = async (file, mode = "add") => {
   try {
     setIsUploading(true);
@@ -542,13 +617,7 @@ const handleUploadCustomIcon = async (file, mode = "add") => {
       return;
     }
 
-    // Validasi tipe file
-    const allowedTypes = [
-      "image/jpeg",
-      "image/png",
-      "image/svg+xml",
-      "image/webp",
-    ];
+    const allowedTypes = ["image/jpeg", "image/png", "image/svg+xml", "image/webp"];
     if (!allowedTypes.includes(file.type)) {
       Swal.fire({
         title: "Error",
@@ -561,8 +630,7 @@ const handleUploadCustomIcon = async (file, mode = "add") => {
       return;
     }
 
-    // Validasi ukuran file (max 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
       Swal.fire({
         title: "Error",
@@ -580,66 +648,54 @@ const handleUploadCustomIcon = async (file, mode = "add") => {
     formData.append("name", file.name.replace(/\.[^/.]+$/, ""));
     formData.append("category", "Custom");
 
-    console.log("Uploading custom icon...", {
+    console.log("📤 Uploading custom icon...", {
       fileName: file.name,
       fileSize: file.size,
       fileType: file.type,
     });
 
-    // PERBAIKAN: Gunakan endpoint yang benar dari API_ENDPOINTS
-    const UPLOAD_ENDPOINT = `${API_BASE_URL}/icons/upload`;
-    console.log("Upload endpoint:", UPLOAD_ENDPOINT);
+    // **PERBAIKAN: Gunakan langsung API_ENDPOINTS.ICONS + '/upload'**
+    const uploadEndpoint = `${API_ENDPOINTS.ICONS}/upload`;
+    console.log("🌐 Upload endpoint:", uploadEndpoint);
 
-    const response = await fetch(UPLOAD_ENDPOINT, {
+    const response = await fetch(uploadEndpoint, {
       method: "POST",
       body: formData,
-      // Jangan set headers Content-Type, biarkan browser set otomatis untuk FormData
+      // Jangan set Content-Type header, biarkan browser handle FormData
     });
 
-    console.log("Upload response status:", response.status);
-    console.log("Upload response headers:", response.headers);
+    console.log("📥 Upload response status:", response.status);
 
     if (!response.ok) {
-      let errorMessage = "Upload failed";
-      
+      let errorMessage = `Upload failed: ${response.status}`;
       try {
-        // Coba parse sebagai JSON dulu
         const errorData = await response.json();
         errorMessage = errorData.message || errorMessage;
-      } catch (jsonError) {
-        // Jika bukan JSON, coba baca sebagai text
-        try {
-          const errorText = await response.text();
-          console.error("Upload error text:", errorText);
-          errorMessage = errorText || "Upload failed";
-        } catch (textError) {
-          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-        }
+      } catch {
+        // Jika bukan JSON
       }
-      
       throw new Error(errorMessage);
     }
 
     const result = await response.json();
-    console.log("Upload result:", result);
+    console.log("✅ Upload result:", result);
 
     if (result.status === "success") {
-      // Add new icon to the list
       const newIcon = result.data;
-      setIcons((prev) => [...prev, newIcon]);
-
-      // Select the newly uploaded icon
-      setSelectedIcon(newIcon);
-
-      // Update state based on mode
+      console.log("🆕 New icon created:", newIcon);
+      
+      // Tambahkan icon baru ke list
+      setIcons(prev => [...prev, newIcon]);
+      
+      // Pilih icon yang baru diupload
       if (mode === "add") {
-        setNewApp((prev) => ({
+        setNewApp(prev => ({
           ...prev,
           iconId: newIcon.id.toString(),
         }));
         setShowIconDropdown(false);
       } else {
-        setEditApp((prev) => ({
+        setEditApp(prev => ({
           ...prev,
           iconId: newIcon.id.toString(),
         }));
@@ -656,15 +712,27 @@ const handleUploadCustomIcon = async (file, mode = "add") => {
         confirmButtonColor: "#3b82f6",
         background: "#1f2937",
         color: "#f9fafb",
+        timer: 2000,
       });
     } else {
       throw new Error(result.message || "Upload failed");
     }
   } catch (error) {
-    console.error("Error uploading custom icon:", error);
+    console.error("❌ Error uploading custom icon:", error);
+    
+    let errorMessage = error.message;
+    
+    // Petunjuk troubleshooting
+    if (error.message.includes("404") || error.message.includes("Not Found")) {
+      errorMessage = `Cannot upload icon. Please check:
+      1. Backend server is running on port 5000
+      2. Endpoint /icons/upload exists
+      3. Try accessing http://localhost:5000/icons directly in browser`;
+    }
+    
     Swal.fire({
       title: "Upload Error",
-      text: error.message || "Failed to upload custom icon. Please check your backend server.",
+      text: errorMessage,
       icon: "error",
       confirmButtonColor: "#3b82f6",
       background: "#1f2937",

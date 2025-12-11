@@ -65,35 +65,57 @@ export default function SuperAdminDashboard() {
         file_path: icon.file_path,
       });
 
-      // Cek jika ini custom icon (file)
+      // Cek jika ini custom icon (file) - DIMODIFIKASI BAGIAN INI
       if (icon.type === "custom" && icon.file_path) {
         console.log("🖼️ Rendering custom icon (Dashboard):", icon.file_path);
         const customIconUrl = getIconUrl(icon.file_path);
+
         return (
-          <img
-            src={customIconUrl}
-            alt={icon.name}
-            className={`${className} object-contain rounded-xl`}
+          <div
+            className={`${className} flex items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 p-3 shadow-lg`}
             style={{
-              width: "100%",
-              height: "100%",
-              borderRadius: "12px",
-              backgroundColor: "#1f2937",
-              padding: "4px",
+              minWidth: "56px",
+              minHeight: "56px",
+              maxWidth: "56px",
+              maxHeight: "56px",
             }}
-            onError={(e) => {
-              console.error("❌ Failed to load custom icon:", customIconUrl);
-              // Fallback ke default icon
-              e.target.style.display = "none";
-              // Show fallback
-              const fallback = document.createElement("div");
-              fallback.className = `${className} bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl flex items-center justify-center text-white font-extrabold text-xl shadow-lg`;
-              fallback.innerHTML = `<span>${
-                app.title?.charAt(0)?.toUpperCase() || "A"
-              }</span>`;
-              e.target.parentNode.appendChild(fallback);
-            }}
-          />
+          >
+            {/* Container untuk icon dengan padding */}
+            <div className="w-full h-full flex items-center justify-center p-1">
+              <img
+                src={customIconUrl}
+                alt={icon.name}
+                className="w-full h-full object-contain"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "contain",
+                  maxWidth: "32px",
+                  maxHeight: "32px",
+                }}
+                onError={(e) => {
+                  console.error(
+                    "❌ Failed to load custom icon:",
+                    customIconUrl
+                  );
+                  // Fallback ke default icon
+                  e.target.style.display = "none";
+                  const fallbackDiv =
+                    e.target.parentNode.querySelector(".icon-fallback");
+                  if (fallbackDiv) {
+                    fallbackDiv.style.display = "flex";
+                  }
+                }}
+              />
+            </div>
+
+            {/* Fallback jika gambar gagal load - JUGA DIBERI BACKGROUND SAMA */}
+            <div className="icon-fallback hidden w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl items-center justify-center p-1">
+              <span className="text-white font-extrabold text-xl">
+                {app.title?.charAt(0)?.toUpperCase() || "A"}
+              </span>
+            </div>
+          </div>
         );
       }
 
@@ -123,7 +145,13 @@ export default function SuperAdminDashboard() {
             console.log("✅ Found Lucide icon (Dashboard):", name);
             return (
               <div
-                className={`${className} bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl flex items-center justify-center p-3`}
+                className={`${className} bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl flex items-center justify-center p-3 shadow-lg`}
+                style={{
+                  minWidth: "56px",
+                  minHeight: "56px",
+                  maxWidth: "56px",
+                  maxHeight: "56px",
+                }}
               >
                 <IconComponent className="w-8 h-8 text-white" />
               </div>
@@ -160,7 +188,13 @@ export default function SuperAdminDashboard() {
       if (IconComponent) {
         return (
           <div
-            className={`${className} bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl flex items-center justify-center p-3`}
+            className={`${className} bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl flex items-center justify-center p-3 shadow-lg`}
+            style={{
+              minWidth: "56px",
+              minHeight: "56px",
+              maxWidth: "56px",
+              maxHeight: "56px",
+            }}
           >
             <IconComponent className="w-8 h-8 text-white" />
           </div>
@@ -206,7 +240,13 @@ export default function SuperAdminDashboard() {
             );
             return (
               <div
-                className={`${className} bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl flex items-center justify-center p-3`}
+                className={`${className} bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl flex items-center justify-center p-3 shadow-lg`}
+                style={{
+                  minWidth: "56px",
+                  minHeight: "56px",
+                  maxWidth: "56px",
+                  maxHeight: "56px",
+                }}
               >
                 <IconComponent className="w-8 h-8 text-white" />
               </div>
@@ -229,13 +269,18 @@ export default function SuperAdminDashboard() {
 
     return (
       <div
-        className={`${className} ${defaultColor} rounded-xl flex items-center justify-center text-white font-extrabold text-xl shadow-lg`}
+        className={`${className} ${defaultColor} rounded-xl flex items-center justify-center text-white font-extrabold text-xl shadow-lg p-3`}
+        style={{
+          minWidth: "56px",
+          minHeight: "56px",
+          maxWidth: "56px",
+          maxHeight: "56px",
+        }}
       >
         {app.title?.charAt(0)?.toUpperCase() || "A"}
       </div>
     );
   };
-
   // Get icon data for app (helper function)
   const getAppIconData = (app) => {
     // Pertama, coba gunakan icon dari relation (jika ada)
@@ -511,7 +556,7 @@ export default function SuperAdminDashboard() {
             {/* HEADER */}
             <div className="mb-8">
               <h1 className="text-2xl font-bold text-white">
-                Seatrium Applications Dashboard
+               Installer List Applications
               </h1>
               <p className="text-gray-400 mt-1 text-base">
                 Manage and review all your application data here.
@@ -627,14 +672,13 @@ export default function SuperAdminDashboard() {
                             Downloads: {app.download_count || 0}
                           </span>
                           <span
-                            className={`px-3 py-1 rounded-lg text-sm font-semibold uppercase ${
-                              app.status === "active"
-                                ? "text-green-400"
-                                // : "text-red-400"
-                                :"text-green-400"
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              app.status === "license"
+                                ? "bg-blue-900/50 text-blue-400"
+                                : "bg-green-900/50 text-green-400"
                             }`}
                           >
-                            {app.status || "Active"}
+                            {app.status === "license" ? "License" : "Paid"}
                           </span>
                         </div>
 

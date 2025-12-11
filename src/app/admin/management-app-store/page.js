@@ -20,10 +20,13 @@ import LayoutDashboard from "../componentsAdmin/Layout/LayoutDashboard";
 import Swal from "sweetalert2";
 import Image from "next/image";
 import * as LucideIcons from "lucide-react";
-import ProtectedRoute from "@/app/components/ProtectedRoute";
-
-// IMPORT API CONFIGURATION
-import { API_ENDPOINTS, getIconUrl } from "../../../config/api";
+import ProtectedRoute from "../../components/ProtectedRoute";
+// import API_BASE_URL, { API_ENDPOINTS, getIconUrl } from "../../../config/api";
+import API_BASE_URL, { 
+  API_ENDPOINTS, 
+  getIconUrl, 
+  SMOE_API_URL 
+} from "../../../config/api";
 
 // Dynamic icon component
 const DynamicIcon = ({ iconName, ...props }) => {
@@ -40,6 +43,9 @@ export default function AdminApplicationsManagement() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedApp, setSelectedApp] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showIconModal, setShowIconModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [showEntriesDropdown, setShowEntriesDropdown] = useState(false);
@@ -52,13 +58,6 @@ export default function AdminApplicationsManagement() {
   const [selectedIcon, setSelectedIcon] = useState(null);
   const [icons, setIcons] = useState([]);
   const [isLoadingIcons, setIsLoadingIcons] = useState(false);
-
-  // New states for IconDropdown
-  const [showIconDropdown, setShowIconDropdown] = useState(false);
-  const [iconSearch, setIconSearch] = useState("");
-  const [showEditIconDropdown, setShowEditIconDropdown] = useState(false);
-  const [editIconSearch, setEditIconSearch] = useState("");
-
   const entriesOptions = [10, 25, 50, 100, "All"];
 
   // Format file size
@@ -72,39 +71,55 @@ export default function AdminApplicationsManagement() {
   };
 
   // AppIcon Component untuk menampilkan icon di table
-  const AppIcon = ({ app, className = "w-6 h-6" }) => {
-    const icon = app.icon || app.iconObject;
+const AppIcon = ({ app, className = "w-6 h-6" }) => {
+  const icon = app.icon || app.iconObject;
 
-    console.log("🔍 AppIcon Debug:", {
-      appId: app.id,
-      appTitle: app.title,
-      iconId: app.icon_id,
-      iconData: icon,
-      hasIcon: !!icon,
+  console.log("🔍 AppIcon Debug:", {
+    appId: app.id,
+    appTitle: app.title,
+    iconId: app.icon_id,
+    iconData: icon,
+    hasIcon: !!icon,
+    file_path: icon?.file_path,
+  });
+
+  // Jika icon adalah object lengkap (dari backend relations)
+  if (icon && typeof icon === "object") {
+    const iconKey = icon.icon_key;
+
+    // Debug info
+    console.log("📦 Icon object found:", {
+      id: icon.id,
+      name: icon.name,
+      icon_key: iconKey,
+      type: icon.type,
+      file_path: icon.file_path,
     });
 
-    // Jika icon adalah object lengkap (dari backend relations)
-    if (icon && typeof icon === "object") {
-      const iconKey = icon.icon_key;
-
-      // Debug info
-      console.log("📦 Icon object found:", {
-        id: icon.id,
-        name: icon.name,
-        icon_key: iconKey,
-        type: icon.type,
-        file_path: icon.file_path,
-      });
-
-      // Cek jika ini custom icon (file)
-      if (icon.type === "custom" && icon.file_path) {
-        console.log("🖼️ Rendering custom icon:", icon.file_path);
-        const customIconUrl = getIconUrl(icon.file_path);
-        return (
+    // Cek jika ini custom icon (file)
+    if (icon.type === "custom" && icon.file_path) {
+      console.log("🖼️ Rendering custom icon from:", icon.file_path);
+      
+      // Gunakan getIconUrl untuk mendapatkan URL yang benar
+      const iconUrl = getIconUrl(icon.file_path);
+      console.log("🌐 Icon URL:", iconUrl);
+      
+      return (
+        <div 
+          className={`${className} flex items-center justify-center overflow-hidden`}
+          style={{
+            width: "100%",
+            height: "100%",
+            minWidth: "24px",
+            minHeight: "24px",
+            maxWidth: "24px",
+            maxHeight: "24px",
+          }}
+        >
           <img
-            src={customIconUrl}
+            src={iconUrl}
             alt={icon.name}
-            className={className}
+            className="max-w-full max-h-full object-contain"
             style={{
               width: "100%",
               height: "100%",
@@ -112,119 +127,157 @@ export default function AdminApplicationsManagement() {
               borderRadius: "4px",
             }}
             onError={(e) => {
-              console.error("❌ Failed to load custom icon:", customIconUrl);
+              console.error("❌ Failed to load custom icon:", {
+                url: iconUrl,
+                file_path: icon.file_path,
+              });
               // Fallback ke default icon
               e.target.style.display = "none";
-              // You might want to show a placeholder here
+              const fallbackDiv = e.target.parentNode.querySelector('.icon-fallback');
+              if (fallbackDiv) {
+                fallbackDiv.style.display = 'flex';
+              }
+            }}
+            onLoad={() => {
+              console.log("✅ Custom icon loaded successfully:", iconUrl);
             }}
           />
-        );
-      }
-
-      // Gunakan Lucide icon jika icon_key valid
-      if (iconKey) {
-        // Cari nama icon yang tepat di LucideIcons
-        const iconName = iconKey;
-        console.log("🔤 Looking for Lucide icon:", iconName);
-
-        // Coba beberapa format
-        const possibleNames = [
-          iconName,
-          iconName.charAt(0).toUpperCase() + iconName.slice(1),
-          iconName
-            .replace(/([A-Z])/g, " $1")
-            .trim()
-            .replace(/ /g, ""),
-          iconName
-            .split("-")
-            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(""),
-        ];
-
-        for (const name of possibleNames) {
-          const IconComponent = LucideIcons[name];
-          if (IconComponent) {
-            console.log("✅ Found Lucide icon:", name);
-            return <IconComponent className={className} />;
-          }
-        }
-
-        console.log("❌ No Lucide icon found for any variation of:", iconName);
-      }
-    }
-
-    // Jika ada icon_id tapi tidak ada icon object, cari di icons list
-    if (app.icon_id && !icon) {
-      console.log(
-        "🔍 Icon ID exists but no object, searching in icons list..."
+          {/* Fallback div jika gambar gagal load */}
+          <div 
+            className="icon-fallback hidden w-full h-full bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg items-center justify-center"
+            style={{
+              minWidth: "24px",
+              minHeight: "24px",
+              maxWidth: "24px",
+              maxHeight: "24px",
+            }}
+          >
+            <span className="text-white text-xs font-bold">
+              {app.title?.charAt(0)?.toUpperCase() || "A"}
+            </span>
+          </div>
+        </div>
       );
-      const foundIcon = icons.find((i) => i.id === app.icon_id);
-      if (foundIcon) {
-        console.log("✅ Found icon in icons list:", foundIcon.name);
-        // Rekursif panggil diri sendiri dengan icon yang ditemukan
-        return (
-          <AppIcon app={{ ...app, icon: foundIcon }} className={className} />
-        );
-      }
     }
 
-    // Jika icon hanya berupa string (icon_key langsung dari backend lama)
-    if (app.icon && typeof app.icon === "string") {
-      console.log("📝 Icon is string:", app.icon);
-      const IconComponent = LucideIcons[app.icon];
-      if (IconComponent) {
-        return <IconComponent className={className} />;
+    // Gunakan Lucide icon jika icon_key valid
+    if (iconKey) {
+      // Cari nama icon yang tepat di LucideIcons
+      const iconName = iconKey;
+      console.log("🔤 Looking for Lucide icon:", iconName);
+
+      // Coba beberapa format
+      const possibleNames = [
+        iconName,
+        iconName.charAt(0).toUpperCase() + iconName.slice(1),
+        iconName
+          .replace(/([A-Z])/g, " $1")
+          .trim()
+          .replace(/ /g, ""),
+        iconName
+          .split("-")
+          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(""),
+      ];
+
+      for (const name of possibleNames) {
+        const IconComponent = LucideIcons[name];
+        if (IconComponent) {
+          console.log("✅ Found Lucide icon:", name);
+          return (
+            <div className={className}>
+              <IconComponent className="w-full h-full" />
+            </div>
+          );
+        }
       }
+
+      console.log("❌ No Lucide icon found for any variation of:", iconName);
     }
+  }
 
-    // Fallback ke icon default berdasarkan category
-    console.log("🔄 Falling back to default icon");
+  // Jika ada icon_id tapi tidak ada icon object, cari di icons list
+  if (app.icon_id && !icon) {
+    console.log(
+      "🔍 Icon ID exists but no object, searching in icons list..."
+    );
+    const foundIcon = icons.find((i) => i.id === app.icon_id);
+    if (foundIcon) {
+      console.log("✅ Found icon in icons list:", foundIcon.name);
+      // Rekursif panggil diri sendiri dengan icon yang ditemukan
+      return (
+        <AppIcon app={{ ...app, icon: foundIcon }} className={className} />
+      );
+    }
+  }
 
-    // Coba icon berdasarkan category
-    if (app.category?.name) {
-      const category = app.category.name.toLowerCase();
-      const categoryIcons = {
-        design: "Palette",
-        development: "Code",
-        productivity: "CheckSquare",
-        communication: "MessageSquare",
-        finance: "DollarSign",
-        graphics: "Image",
-        media: "Video",
-        education: "BookOpen",
-        utility: "Settings",
-        game: "Gamepad",
-        business: "Briefcase",
-        health: "Heart",
-      };
+  // Jika icon hanya berupa string (icon_key langsung dari backend lama)
+  if (app.icon && typeof app.icon === "string") {
+    console.log("📝 Icon is string:", app.icon);
+    const IconComponent = LucideIcons[app.icon];
+    if (IconComponent) {
+      return (
+        <div className={className}>
+          <IconComponent className="w-full h-full" />
+        </div>
+      );
+    }
+  }
 
-      for (const [cat, iconName] of Object.entries(categoryIcons)) {
-        if (category.includes(cat)) {
-          const IconComponent = LucideIcons[iconName];
-          if (IconComponent) {
-            console.log(`🎯 Using category icon for ${category}: ${iconName}`);
-            return <IconComponent className={className} />;
-          }
+  // Fallback ke icon default berdasarkan category
+  console.log("🔄 Falling back to default icon");
+
+  // Coba icon berdasarkan category
+  if (app.category?.name) {
+    const category = app.category.name.toLowerCase();
+    const categoryIcons = {
+      design: "Palette",
+      development: "Code",
+      productivity: "CheckSquare",
+      communication: "MessageSquare",
+      finance: "DollarSign",
+      graphics: "Image",
+      media: "Video",
+      education: "BookOpen",
+      utility: "Settings",
+      game: "Gamepad",
+      business: "Briefcase",
+      health: "Heart",
+    };
+
+    for (const [cat, iconName] of Object.entries(categoryIcons)) {
+      if (category.includes(cat)) {
+        const IconComponent = LucideIcons[iconName];
+        if (IconComponent) {
+          console.log(`🎯 Using category icon for ${category}: ${iconName}`);
+          return (
+            <div className={className}>
+              <IconComponent className="w-full h-full" />
+            </div>
+          );
         }
       }
     }
+  }
 
-    // Ultimate fallback - icon A dengan background
-    console.log("⚠️ Ultimate fallback - showing default 'A' icon");
-    return (
-      <div
-        className={`${className} bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center`}
-        style={{
-          minWidth: className.includes("w-") ? "" : "24px",
-          minHeight: className.includes("h-") ? "" : "24px",
-        }}
-      >
-        <span className="text-white text-xs font-bold">
-          {app.title?.charAt(0)?.toUpperCase() || "A"}
-        </span>
-      </div>
-    );
-  };
+  // Ultimate fallback - icon A dengan background
+  console.log("⚠️ Ultimate fallback - showing default 'A' icon");
+  return (
+    <div
+      className={`${className} bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center`}
+      style={{
+        minWidth: "24px",
+        minHeight: "24px",
+        maxWidth: "24px",
+        maxHeight: "24px",
+      }}
+    >
+      <span className="text-white text-xs font-bold">
+        {app.title?.charAt(0)?.toUpperCase() || "A"}
+      </span>
+    </div>
+  );
+};
 
   // Fetch applications
   const fetchApplications = async () => {
@@ -401,7 +454,6 @@ export default function AdminApplicationsManagement() {
     console.log("❌ No icon found for app");
     return null;
   };
-
   // Initial data fetch
   useEffect(() => {
     fetchApplications();
@@ -464,6 +516,7 @@ export default function AdminApplicationsManagement() {
       )}
     </div>
   );
+
 
   // Handle File Download
   const handleDownload = async (app) => {
@@ -633,15 +686,15 @@ export default function AdminApplicationsManagement() {
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-400">Status:</span>
+            <span className="text-gray-400"> Status:</span>
             <span
               className={`px-2 py-1 rounded-full text-xs ${
-                app.status === "active"
-                  ? "bg-green-900/50 text-green-400"
-                  : "bg-red-900/50 text-red-400"
+                app.status === "license"
+                  ? "bg-blue-900/50 text-blue-400"
+                  : "bg-green-900/50 text-green-400"
               }`}
             >
-              {app.status}
+              {app.status === "license" ? "License" : "Paid"}
             </span>
           </div>
           {app.file_name && (
@@ -731,20 +784,18 @@ export default function AdminApplicationsManagement() {
               <p className="text-white">{app.version || "1.0.0"}</p>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                Status
-              </label>
-              <span
-                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  app.status === "active"
-                    ? "bg-green-900/50 text-green-400"
-                    : "bg-red-900/50 text-red-400"
-                }`}
-              >
-                {app.status}
-              </span>
-            </div>
+       <div>
+  <label className="block text-sm font-medium text-gray-300 mb-1">
+    Status Status
+  </label>
+  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+    app.status === 'license' 
+      ? 'bg-blue-900/50 text-blue-400' 
+      : 'bg-green-900/50 text-green-400'
+  }`}>
+    {app.status === 'license' ? 'License' : 'Paid'}
+  </span>
+</div>
 
             {app.file_name && (
               <div>
@@ -798,7 +849,7 @@ export default function AdminApplicationsManagement() {
   };
 
   return (
-    <ProtectedRoute allowedRoles={["guest", "user"]}>
+    <ProtectedRoute allowedRoles={["admin"]}>
       <LayoutDashboard>
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8 bg-gray-900 min-h-screen relative">
           {/* Background Logo Transparan */}
@@ -943,6 +994,7 @@ export default function AdminApplicationsManagement() {
                                 <td className="px-4 py-3">
                                   <div className="flex items-center gap-3">
                                     <div className="p-2 bg-blue-900/50 rounded-lg">
+                                      {/* PERBAIKAN: Gunakan AppIcon langsung dengan app object */}
                                       <AppIcon
                                         app={app}
                                         className="w-6 h-6 text-blue-400"
@@ -1004,12 +1056,14 @@ export default function AdminApplicationsManagement() {
                                 <td className="px-4 py-3">
                                   <span
                                     className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                      app.status === "active"
-                                        ? "bg-green-900/50 text-green-400"
-                                        : "bg-red-900/50 text-red-400"
+                                      app.status === "license"
+                                        ? "bg-blue-900/50 text-blue-400"
+                                        : "bg-green-900/50 text-green-400"
                                     }`}
                                   >
-                                    {app.status}
+                                    {app.status === "license"
+                                      ? "License"
+                                      : "Paid"}
                                   </span>
                                 </td>
                                 <td className="px-4 py-3 text-sm text-white">
@@ -1027,7 +1081,7 @@ export default function AdminApplicationsManagement() {
                                     >
                                       <Eye className="w-4 h-4" />
                                     </button>
-
+                                 
                                     {app.file_name && (
                                       <button
                                         onClick={() => handleDownload(app)}
@@ -1037,6 +1091,7 @@ export default function AdminApplicationsManagement() {
                                         <Download className="w-4 h-4" />
                                       </button>
                                     )}
+                                 
                                   </div>
                                 </td>
                               </tr>
@@ -1135,6 +1190,7 @@ export default function AdminApplicationsManagement() {
               onClose={() => setShowDetailModal(false)}
             />
           )}
+
         </div>
         {/* Footer */}
         <footer className="mt-12 py-6 text-center text-gray-400 text-sm border-t border-gray-700/50 relative z-10">
