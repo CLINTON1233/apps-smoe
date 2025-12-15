@@ -41,6 +41,11 @@ export const SMOE_API = {
 export const API_ENDPOINTS = {
   ...PORTAL_API,
   ...SMOE_API,
+    APPLICATION_DOWNLOAD: (id) => `${SMOE_API_URL}/applications/${id}/ftp-download`,
+  
+  // Endpoint untuk test FTP
+  FTP_TEST: `${SMOE_API_URL}/ftp/test`,
+
 };
 
 // Helper functions
@@ -71,6 +76,7 @@ export const getPortalLoginUrl = (returnUrl = null) => {
   }
   return PORTAL.LOGIN_PAGE;
 };
+
 
 export default {
   PORTAL,
