@@ -105,35 +105,13 @@ export default function AdminApplicationsManagement() {
 const AppIcon = ({ app, className = "w-6 h-6" }) => {
   const icon = app.icon || app.iconObject;
 
-  console.log("🔍 AppIcon Debug:", {
-    appId: app.id,
-    appTitle: app.title,
-    iconId: app.icon_id,
-    iconData: icon,
-    hasIcon: !!icon,
-    file_path: icon?.file_path,
-  });
-
   // Jika icon adalah object lengkap (dari backend relations)
   if (icon && typeof icon === "object") {
     const iconKey = icon.icon_key;
 
-    // Debug info
-    console.log("📦 Icon object found:", {
-      id: icon.id,
-      name: icon.name,
-      icon_key: iconKey,
-      type: icon.type,
-      file_path: icon.file_path,
-    });
-
     // Cek jika ini custom icon (file)
     if (icon.type === "custom" && icon.file_path) {
-      console.log("🖼️ Rendering custom icon from:", icon.file_path);
-      
-      // Gunakan getIconUrl untuk mendapatkan URL yang benar
       const iconUrl = getIconUrl(icon.file_path);
-      console.log("🌐 Icon URL:", iconUrl);
       
       return (
         <div 
@@ -158,22 +136,31 @@ const AppIcon = ({ app, className = "w-6 h-6" }) => {
               borderRadius: "4px",
             }}
             onError={(e) => {
-              console.error("❌ Failed to load custom icon:", {
+              // Gunakan console.warn daripada console.error untuk menghindari error di console
+              console.warn("Custom icon failed to load, using fallback:", {
                 url: iconUrl,
                 file_path: icon.file_path,
               });
-              // Fallback ke default icon
-              e.target.style.display = "none";
+              
+              // Hide the image
+              e.target.style.display = 'none';
+              
+              // Show fallback
               const fallbackDiv = e.target.parentNode.querySelector('.icon-fallback');
               if (fallbackDiv) {
                 fallbackDiv.style.display = 'flex';
               }
             }}
-            onLoad={() => {
-              console.log("✅ Custom icon loaded successfully:", iconUrl);
-            }}
+        onLoad={(loadEvent) => {
+  console.log("✅ Custom icon loaded successfully:", iconUrl);
+  // Hide fallback if it exists
+  const fallbackDiv = loadEvent.target.parentNode.querySelector('.icon-fallback');
+  if (fallbackDiv) {
+    fallbackDiv.style.display = 'none';
+  }
+}}
           />
-          {/* Fallback div jika gambar gagal load */}
+          {/* Fallback div */}
           <div 
             className="icon-fallback hidden w-full h-full bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg items-center justify-center"
             style={{
@@ -351,11 +338,23 @@ const AppIcon = ({ app, className = "w-6 h-6" }) => {
 const IconComponent = ({ iconKey, className = "w-4 h-4" }) => {
   console.log("IconComponent called with key:", iconKey);
 
-  // Cek jika iconKey adalah string dan ada di LucideIcons
+  // Cek jika iconKey adalah string
   if (iconKey && typeof iconKey === "string") {
     // Cek jika ini custom icon (file)
     if (iconKey.includes("icon-") && iconKey.includes(".")) {
-      const iconPath = `uploads/icons/${iconKey}`;
+      // Pastikan iconKey sudah dalam format yang benar
+      let iconFileName = iconKey;
+      
+      // Jika iconKey sudah mengandung path, ambil hanya nama filenya
+      if (iconKey.includes("/")) {
+        iconFileName = iconKey.split("/").pop();
+      }
+      
+      // Tambahkan path jika belum ada
+      const iconPath = iconFileName.startsWith("icon-") ? 
+        `uploads/icons/${iconFileName}` : 
+        `uploads/icons/icon-${iconFileName}`;
+      
       const fullUrl = getIconUrl(iconPath);
 
       console.log("Loading custom icon from:", fullUrl);
@@ -380,32 +379,31 @@ const IconComponent = ({ iconKey, className = "w-4 h-4" }) => {
               objectFit: "contain" 
             }}
             onError={(e) => {
-              console.error(
-                "Failed to load custom icon image:",
-                iconKey,
-                "Path:",
-                iconPath
+              // Gunakan console.warn untuk tidak mengganggu dengan error
+              console.warn(
+                "Custom icon failed to load, using fallback:",
+                iconFileName
               );
-              // Fallback ke default icon
-              const LucideIcon = LucideIcons["Image"];
-              if (LucideIcon) {
-                e.target.style.display = "none";
-                const iconElement = <LucideIcon className={className} />;
-                // Render fallback icon
-                const container = e.target.parentNode;
-                container.innerHTML = '';
-                container.appendChild(iconElement);
-              }
+              
+              // Fallback ke Lucide icon dengan cara yang lebih bersih
+              e.target.style.display = 'none';
+              
+              // Buat fallback element
+              const fallbackDiv = document.createElement('div');
+              fallbackDiv.className = 'flex items-center justify-center w-full h-full bg-gray-700 rounded';
+              fallbackDiv.innerHTML = '<svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>';
+              
+              e.target.parentNode.appendChild(fallbackDiv);
             }}
-            onLoad={() =>
-              console.log("Custom icon loaded successfully:", iconKey)
-            }
+            onLoad={() => {
+              console.log("Custom icon loaded successfully:", iconFileName);
+            }}
           />
         </div>
       );
     }
 
-    // Coba berbagai format nama icon
+    // Coba berbagai format nama icon untuk Lucide
     const possibleKeys = [
       iconKey,
       iconKey.charAt(0).toUpperCase() + iconKey.slice(1),
@@ -427,8 +425,8 @@ const IconComponent = ({ iconKey, className = "w-4 h-4" }) => {
     console.log("No Lucide icon found for any variation of:", iconKey);
   }
 
-  // Fallback
-  return <LucideIcons.Globe className={className} />;
+  // Fallback ke icon default
+  return <LucideIcons.Image className={className} />;
 };
     // Fungsi untuk handle upload custom icon
     const handleFileUpload = (event, mode) => {
