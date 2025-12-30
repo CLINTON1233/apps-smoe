@@ -1,4 +1,4 @@
-// config/api.js - PERBAIKAN: Hapus duplikasi dan pastikan export benar
+// config/api.js - Hapus upload icons
 const PORTAL_URL =
   process.env.NEXT_PUBLIC_PORTAL_URL || "http://localhost:3000";
 const PORTAL_API_URL =
@@ -34,6 +34,7 @@ export const SMOE_API = {
   APPLICATION_BY_ID: (id) => `${SMOE_API_URL}/applications/${id}`,
   APPLICATION_DOWNLOAD: (id) => `${SMOE_API_URL}/applications/${id}/download`,
   ICONS: `${SMOE_API_URL}/icons`,
+  // HAPUS: ICONS_UPLOAD: `${SMOE_API_URL}/icons/upload`,
   UPLOADS: `${SMOE_API_URL}/uploads`,
 };
 
@@ -48,7 +49,7 @@ export const getUploadUrl = (filename) => {
   return `${SMOE_API.UPLOADS}/${filename}`;
 };
 
-// Tambahkan fungsi khusus untuk icon URL:
+// Fungsi untuk icon URL (tetap dipertahankan untuk custom icons yang sudah ada)
 export const getIconUrl = (filePath) => {
   if (!filePath) return null;
   
@@ -65,6 +66,7 @@ export const getIconUrl = (filePath) => {
   // Untuk icon system (Lucide), return null
   return null;
 };
+
 export const getPortalLoginUrl = (returnUrl = null) => {
   if (returnUrl) {
     return `${PORTAL.LOGIN_WITH_REDIRECT(returnUrl)}`;
