@@ -2,8 +2,8 @@ import { AuthProvider } from "./context/AuthContext";
 import "./globals.css";
 
 export const metadata = {
-  title: "Seatrium Apps Portal",
-  description: "Seatrium Applications Dashboard",
+  title: "Installer Dashboard - Seatrium Applications",
+  description: "Seatrium Installer Dashboard for Application Management",
 };
 
 export default function RootLayout({ children }) {
